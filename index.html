@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>My Personal Website</title>
+    <link rel="stylesheet" href="styles.css">
+    <link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
+/>
+
+    <script src="https://kit.fontawesome.com/yourcode.js" crossorigin="anonymous"></script>
+</head>
+
+
+<body>
+
+
+  
+    <div id="login-container" class="login-box">
+        <h2>Login</h2>
+        <input type="text" id="username" placeholder="Enter your name">
+        <input type="password" id="password" placeholder="Enter your password">
+        <button onclick="login()">Enter</button>
+        <div id="error-message" class="error-message hidden">YOU ARE NOT AUTHORIZED. TRY AGAIN LATER. THANK YOU</div>
+    </div>
+
+
+    <div id="main-container" class="hidden container">
+        <h2 class="welcome-message">Hello, <span id="user-name"></span>! Welcome to my website.</h2>
+        <nav>
+            <button onclick="showContent('movies')">Watch Movies</button>
+            <button onclick="showContent('articles')">Read Articles</button>
+            <button onclick="showContent('explore')">Explore World</button>
+            <button onclick="showContent('AET')">Agricultural Engineering & Technology</button>
+        </nav>
+
+    <div class="daynight-switch">
+      <button id="day" onclick="bckgroundImaged('day')">
+        <i class="fas fa-sun"></i>
+      </button>
+      <button id="night" onclick="bckgroundImagen('night')">
+        <i class="fas fa-moon"></i>
+      </button>
+    </div>
+
+    
+
+        <div id="content">Choose an option above to explore!</div>
+        <button onclick="logout()">Logout</button>
+
+    </div>
+
+<div id="nebulaLight"></div>
+<div id="clock"></div>
+
+
+
+
+    <!-- Popup for successful login -->
+    <div id="popup" class="popup">
+        <h3>Login Successful!</h3>
+        <button onclick="closePopup()">Close</button>
+    </div>
+
+
+
+
+
+
+
+    
+<div id="about-container">
+  <button id="toggle-about">About the Developer</button>
+  <div id="about-section" style="display: none;">
+    <h3>About the Developer</h3>
+    <img src="deboneel dp.jpeg" alt="Developer Photo" id="dev-photo" />
+    <p><strong>Name:</strong> Deboneel Partho</p>
+    <p><strong>ID No:</strong> 2105056</p>
+    <p><strong>Department:</strong> Irrigation and Water Management</p>
+    <p><strong>Faculty:</strong> Agricultural Engineering and Technology</p>
+    <p><strong>University:</strong> Bangladesh Agricultural University, Mymensingh</p>
+    
+   <div class="social-links">
+  <a href="https://www.instagram.com/deboneel_partho?igsh=MWdjMHZrMnZhMTVpeQ==" target="_blank">
+    <i class="fab fa-instagram"></i>
+  </a>
+  <a href="https://www.linkedin.com/in/deboneelpartho?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" target="_blank">
+    <i class="fab fa-linkedin-in"></i>
+  </a>
+  <a href="https://www.facebook.com/share/16ZLuXf22D/" target="_blank">
+    <i class="fab fa-facebook-f"></i>
+  </a>
+</div>
+
+  </div>
+</div>
+
+    
+    <script src="script.js"></script>
+</body>
+</html>
