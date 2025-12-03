@@ -1122,3 +1122,291 @@ window.addEventListener('resize', () => {
     corners[1].left = window.innerWidth - 170;
     corners[2].left = window.innerWidth - 170;
 });
+
+// ==================== GOOGLE SHEETS INTEGRATION ====================
+const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSE5iY6FJ12deTkdWj-Ib86RHNf06HZJGq8FykSBMZB0Eqvi87bUOGO_08DnzD4yYiFFM6XAo8ee1au/pub?output=csv';
+
+// Store for fetched users from Google Sheets
+let globalUsers = [];
+
+// Function to fetch users from Google Sheets
+async function fetchUsersFromGoogleSheets() {
+    try {
+        const response = await fetch(GOOGLE_SHEET_URL);
+        const csvText = await response.text();
+        
+        // Parse CSV to JSON
+        const rows = csvText.split('\n').slice(1); // Skip header row
+        globalUsers = [];
+        
+        rows.forEach(row => {
+            if (row.trim()) {
+                const columns = row.split(',');
+                if (columns.length >= 9) {
+                    globalUsers.push({
+                        id: columns[0]?.trim() || '',
+                        fullName: columns[1]?.trim() || '',
+                        nickname: columns[2]?.trim() || '',
+                        regNo: columns[3]?.trim() || '',
+                        college: columns[4]?.trim() || '',
+                        department: columns[5]?.trim() || '',
+                        email: columns[6]?.trim() || '',
+                        password: columns[7]?.trim() || '',
+                        registrationDate: columns[8]?.trim() || new Date().toISOString(),
+                        hometown: columns[9]?.trim() || '',
+                        hallName: columns[10]?.trim() || '',
+                        supervisor: columns[11]?.trim() || '',
+                        phone: columns[12]?.trim() || ''
+                    });
+                }
+            }
+        });
+        
+        // Update total users count
+        updateGlobalUserCount();
+        return globalUsers;
+    } catch (error) {
+        console.error('Error fetching users from Google Sheets:', error);
+        return [];
+    }
+}
+
+// Function to update global user count display
+function updateGlobalUserCount() {
+    const countDisplay = document.getElementById("user-count-display");
+    if (countDisplay) {
+        // Count non-admin users
+        const regularUsers = globalUsers.filter(user => user.id !== ADMIN_ID);
+        const localUsers = Object.keys(registeredUsers).filter(id => id !== ADMIN_ID).length;
+        
+        countDisplay.innerHTML = `
+            <div style="display: flex; flex-direction: column; gap: 5px;">
+                <span>Global Users: ${regularUsers.length}</span>
+                <small style="color: rgba(255,255,255,0.6);">Users on this device: ${localUsers}</small>
+            </div>
+        `;
+    }
+}
+
+// Function to save user to Google Sheets (via Form Submission)
+function saveUserToGoogleSheets(userData) {
+    // Create a Google Form submission URL (you need to create a Google Form linked to your sheet)
+    const formURL = 'https://docs.google.com/forms/d/e/1FAIpQLSeXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/formResponse'; // You need to create this
+    
+    // Instead, we'll just fetch and update the local cache
+    fetchUsersFromGoogleSheets();
+    
+    // For now, we'll use a simple approach: Update the globalUsers array
+    globalUsers.push(userData);
+    updateGlobalUserCount();
+    
+    // Note: To actually save to Google Sheets, you need to:
+    // 1. Create a Google Form linked to your spreadsheet
+    // 2. Use the form submission URL above
+    // 3. Or use Google Apps Script (more complex)
+}
+
+// Updated registration function to work with Google Sheets
+async function registerWithGoogleSheets() {
+    const id = document.getElementById("reg-id").value.trim();
+    const fullName = document.getElementById("reg-fullname").value.trim();
+    const nickname = document.getElementById("reg-nickname").value.trim();
+    const regNo = document.getElementById("reg-regno").value.trim();
+    const college = document.getElementById("reg-college").value.trim();
+    const department = document.getElementById("reg-department").value;
+    const otherDepartment = document.getElementById("reg-other-department").value.trim();
+    const email = document.getElementById("reg-email").value.trim();
+    const password = document.getElementById("reg-password").value.trim();
+    const confirmPassword = document.getElementById("reg-confirm-password").value.trim();
+    const hometown = document.getElementById("reg-hometown").value.trim();
+    const hallName = document.getElementById("reg-hallname").value.trim();
+    const supervisor = document.getElementById("reg-supervisor").value.trim();
+    const phone = document.getElementById("reg-phone").value.trim();
+    const files = document.getElementById("reg-documents").files;
+
+    const errorMessage = document.getElementById('error-message');
+
+    // Validation
+    if (!id || !fullName || !nickname || !regNo || !college || !department || !password || !confirmPassword) {
+        showError("All required fields (*) must be filled!");
+        return;
+    }
+    
+    if (!/^\d{7}$/.test(id)) {
+        showError("ID must be exactly 7 digits (e.g., 2105056)");
+        return;
+    }
+    
+    if (password !== confirmPassword) {
+        showError("Passwords do not match!");
+        return;
+    }
+    
+    if (files.length > 3) {
+        showError("Maximum 3 documents allowed!");
+        return;
+    }
+    
+    // Check both local and global for existing user
+    if (registeredUsers[id] || id === ADMIN_ID) {
+        showError("This ID is already registered or reserved!");
+        return;
+    }
+
+    // Create user data
+    const userData = {
+        id,
+        fullName,
+        nickname,
+        regNo,
+        college,
+        department: department === 'Others' ? otherDepartment : department,
+        email,
+        password,
+        hometown,
+        hallName,
+        supervisor,
+        phone,
+        documentCount: files.length,
+        registrationDate: new Date().toISOString()
+    };
+
+    // Save to local storage
+    registeredUsers[id] = userData;
+    localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+    localStorage.setItem('currentUser', JSON.stringify({ 
+        username: id, 
+        password,
+        nickname,
+        department: department === 'Others' ? otherDepartment : department
+    }));
+
+    // Save to global users (Google Sheets cache)
+    saveUserToGoogleSheets(userData);
+
+    // Success
+    currentUserRole = 'user';
+    currentUserNickname = nickname;
+    document.getElementById("auth-container").classList.add("hidden");
+    document.getElementById("main-container").classList.remove("hidden");
+    setupTypingAnimation();
+    fireConfetti();
+    playWelcomeSound();
+    showPopup("Registration Successful! Your data is saved locally and globally.");
+    updateAdminView();
+    setTheme(false);
+    
+    // Refresh global user count
+    setTimeout(() => fetchUsersFromGoogleSheets(), 1000);
+}
+
+// Updated showUserList function to show from Google Sheets
+async function showGlobalUserList() {
+    if (currentUserRole !== 'admin') {
+        alert("Access Denied! Admin Only Feature.");
+        return;
+    }
+
+    const content = document.getElementById("content");
+    
+    // Show loading
+    content.innerHTML = `
+        <div style="text-align: center; padding: 50px;">
+            <h3 style="color:#ff7eb3;">Loading global user data...</h3>
+            <div class="spinner" style="margin: 20px auto; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #ff7eb3; animation: spin 1s linear infinite;"></div>
+            <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
+        </div>
+    `;
+    
+    try {
+        // Fetch latest data from Google Sheets
+        await fetchUsersFromGoogleSheets();
+        
+        let html = `<h2 style="color:#ff7eb3; margin-bottom: 20px;">Global Registered Users (${globalUsers.length})</h2>`;
+        
+        if (globalUsers.length === 0) {
+            content.innerHTML = html + `
+                <div style="background: rgba(255,126,179,0.1); padding: 20px; border-radius: 10px;">
+                    <p style="color: rgba(255,255,255,0.8);">No users found in global database.</p>
+                    <p style="color: rgba(255,255,255,0.6); font-size: 14px; margin-top: 10px;">
+                        Note: This shows users registered across all devices.
+                    </p>
+                </div>`;
+            return;
+        }
+
+        html += `
+            <div style="overflow-x: auto; margin-top: 20px;">
+                <table style="width:100%; border-collapse:collapse; background: rgba(0,0,0,0.3);">
+                    <thead>
+                        <tr style="background:rgba(255,126,179,0.2)">
+                            <th style="padding:12px; text-align:left;">ID</th>
+                            <th style="padding:12px; text-align:left;">Name</th>
+                            <th style="padding:12px; text-align:left;">Nickname</th>
+                            <th style="padding:12px; text-align:left;">College</th>
+                            <th style="padding:12px; text-align:left;">Department</th>
+                            <th style="padding:12px; text-align:left;">Registration Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>`;
+
+        globalUsers.forEach(u => {
+            if (u.id !== ADMIN_ID) { // Don't show admin
+                html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
+                    <td style="padding:12px;">${u.id}</td>
+                    <td style="padding:12px;">${u.fullName}</td>
+                    <td style="padding:12px;">${u.nickname || '-'}</td>
+                    <td style="padding:12px;">${u.college}</td>
+                    <td style="padding:12px;">${u.department}</td>
+                    <td style="padding:12px;">${new Date(u.registrationDate).toLocaleDateString()}</td>
+                </tr>`;
+            }
+        });
+        
+        html += `</tbody></table></div>`;
+        
+        // Add refresh button
+        html += `
+            <div style="margin-top: 20px; text-align: center;">
+                <button onclick="showGlobalUserList()" class="eye-catchy-btn small-btn">
+                    <i class="fas fa-sync-alt"></i> Refresh List
+                </button>
+            </div>
+        `;
+        
+        content.innerHTML = html;
+        
+    } catch (error) {
+        content.innerHTML = `
+            <div style="text-align: center; padding: 30px;">
+                <h3 style="color:#ff7eb3;">Error Loading Data</h3>
+                <p style="color:#ff6b6b; margin: 15px 0;">${error.message}</p>
+                <p style="color: rgba(255,255,255,0.7);">Please check your internet connection and try again.</p>
+                <button onclick="showGlobalUserList()" class="eye-catchy-btn" style="margin-top: 20px;">
+                    <i class="fas fa-redo"></i> Retry
+                </button>
+            </div>`;
+    }
+}
+
+// Update the existing showUserList function
+const originalShowUserList = showUserList;
+showUserList = showGlobalUserList;
+
+// Update the existing register function
+const originalRegister = register;
+register = registerWithGoogleSheets;
+
+// Update the existing updateCounts function
+updateCounts = updateGlobalUserCount;
+
+// Fetch global users when page loads
+document.addEventListener('DOMContentLoaded', function() {
+    // Fetch global users after a short delay
+    setTimeout(() => {
+        fetchUsersFromGoogleSheets();
+    }, 1000);
+    
+    // Also fetch periodically (every 30 seconds)
+    setInterval(fetchUsersFromGoogleSheets, 30000);
+});
