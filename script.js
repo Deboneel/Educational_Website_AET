@@ -154,8 +154,30 @@ const agQuotes = [
     { text: "জলের এক ফোঁটাও যেন বৃথা না যায় - সেচ প্রকৌশলের মূলমন্ত্র", author: "Water Management Expert" }
 ];
 
+// ==================== INITIAL ADMIN USER ====================
+// Add admin user if not exists
+function initializeAdminUser() {
+    if (!registeredUsers[ADMIN_ID]) {
+        registeredUsers[ADMIN_ID] = {
+            id: ADMIN_ID,
+            fullName: "Admin User",
+            nickname: "Admin",
+            regNo: "ADMIN001",
+            college: "System Administration",
+            department: "ADMIN",
+            email: "admin@eduhub.com",
+            password: ADMIN_PASSWORD,
+            registrationDate: new Date().toISOString()
+        };
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+    }
+}
+
 // ==================== WINDOW ONLOAD ====================
 window.onload = function () {
+    // Initialize admin user
+    initializeAdminUser();
+    
     updateAdminView();
     updateClock();
     displayRandomQuote();
@@ -901,7 +923,7 @@ function watchContent(type) {
     }
 }
 
-// ==================== OTHER FUNCTIONS ====================
+// ==================== USER LIST DISPLAY ====================
 function showUserList() {
     if (currentUserRole !== 'admin') {
         alert("Access Denied! Admin Only Feature.");
@@ -918,28 +940,30 @@ function showUserList() {
     }
 
     html += `<div style="overflow-x: auto;">
-        <table style="width:100%; border-collapse:collapse; margin-top:15px;">
+        <table style="width:100%; border-collapse:collapse; margin-top:15px; background: rgba(0,0,0,0.3);">
             <thead>
                 <tr style="background:rgba(255,255,255,0.1)">
                     <th style="padding:12px; text-align:left;">ID</th>
                     <th style="padding:12px; text-align:left;">Name</th>
                     <th style="padding:12px; text-align:left;">Nickname</th>
                     <th style="padding:12px; text-align:left;">College</th>
-                    <th style="padding:12px; text-align:left;">Dept</th>
-                    <th style="padding:12px; text-align:left;">Reg Date</th>
+                    <th style="padding:12px; text-align:left;">Department</th>
+                    <th style="padding:12px; text-align:left;">Registration Date</th>
                 </tr>
             </thead>
             <tbody>`;
 
     users.forEach(u => {
-        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
-            <td style="padding:12px;">${u.id}</td>
-            <td style="padding:12px;">${u.fullName}</td>
-            <td style="padding:12px;">${u.nickname || '-'}</td>
-            <td style="padding:12px;">${u.college}</td>
-            <td style="padding:12px;">${u.department}</td>
-            <td style="padding:12px;">${new Date(u.registrationDate).toLocaleDateString()}</td>
-        </tr>`;
+        if (u.id !== ADMIN_ID) { // Don't show admin in user list
+            html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
+                <td style="padding:12px;">${u.id}</td>
+                <td style="padding:12px;">${u.fullName}</td>
+                <td style="padding:12px;">${u.nickname || '-'}</td>
+                <td style="padding:12px;">${u.college}</td>
+                <td style="padding:12px;">${u.department}</td>
+                <td style="padding:12px;">${new Date(u.registrationDate).toLocaleDateString()}</td>
+            </tr>`;
+        }
     });
     html += `</tbody></table></div>`;
     content.innerHTML = html;
