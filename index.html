@@ -3,101 +3,203 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>My Personal Website</title>
-    <link rel="stylesheet" href="styles.css">
-    <link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css"
-/>
-
-    <script src="https://kit.fontawesome.com/yourcode.js" crossorigin="anonymous"></script>
+    <title>Creative Educational Hub - AET</title>
+    <link rel="stylesheet" href="./CSS/styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
 </head>
 
-
 <body>
+    <div id="auth-container" class="login-box">
+        <!-- Login Form -->
+        <div id="login-form" class="hidden">
+            <h2>User Login</h2>
+            <div class="form-group">
+                <input type="text" id="login-username" placeholder="Username (Your ID)" required>
+            </div>
+            <div class="form-group">
+                <input type="password" id="login-password" placeholder="Password" required>
+            </div>
+            <button onclick="login()" class="eye-catchy-btn">Login</button>
+            <p class="toggle-link" onclick="toggleAuthForm('register')">New User? Register here.</p>
+        </div>
 
-
-  
-    <div id="login-container" class="login-box">
-        <h2>Login</h2>
-        <input type="text" id="username" placeholder="Enter your name">
-        <input type="password" id="password" placeholder="Enter your password">
-        <button onclick="login()">Enter</button>
-        <div id="error-message" class="error-message hidden">YOU ARE NOT AUTHORIZED. TRY AGAIN LATER. THANK YOU</div>
+        <!-- Registration Form -->
+        <div id="registration-form" class="registration-form-container hidden">
+            <h2>User Registration</h2>
+            <div class="form-grid">
+                <div class="form-group full-width">
+                    <input type="text" id="reg-fullname" placeholder="Full Name *" required>
+                </div>
+                <div class="form-group full-width">
+                    <input type="text" id="reg-nickname" placeholder="Nickname (For Welcome) *" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="reg-id" placeholder="ID (7 digit) *" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="reg-regno" placeholder="Registration No. *" required>
+                </div>
+                <div class="form-group full-width">
+                    <input type="text" id="reg-college" placeholder="College Name *" required>
+                </div>
+                <div class="form-group full-width">
+                    <select id="reg-department" required>
+                        <option value="">Select Department *</option>
+                        <option value="CSM">CSM (Computer Science and Mathematics)</option>
+                        <option value="FPM">FPM (Farm Power and Machinery)</option>
+                        <option value="FSEE">FSEE (Farm Structure and Environmental Engineering)</option>
+                        <option value="IWM">IWM (Irrigation and Water Management)</option>
+                        <option value="Others">Others - Please specify</option>
+                    </select>
+                </div>
+                <div class="form-group full-width hidden" id="other-department-group">
+                    <input type="text" id="reg-other-department" placeholder="Please specify your department">
+                </div>
+                <div class="form-group full-width">
+                    <input type="email" id="reg-email" placeholder="Email Address (Optional)">
+                </div>
+                <div class="form-group">
+                    <input type="password" id="reg-password" placeholder="Password *" required>
+                </div>
+                <div class="form-group">
+                    <input type="password" id="reg-confirm-password" placeholder="Confirm Password *" required>
+                </div>
+                <div class="form-group">
+                    <input type="text" id="reg-hometown" placeholder="Hometown (Optional)">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="reg-hallname" placeholder="Hall Name (Optional)">
+                </div>
+                <div class="form-group full-width">
+                    <input type="text" id="reg-supervisor" placeholder="Supervisor Name (Optional)">
+                </div>
+                <div class="form-group full-width">
+                    <input type="tel" id="reg-phone" placeholder="Phone No. (Optional)">
+                </div>
+                <div class="form-group full-width">
+                    <label for="reg-documents" class="file-label">
+                        <i class="fas fa-upload"></i> Upload Documents (Max 3, Optional)
+                    </label>
+                    <input type="file" id="reg-documents" multiple accept=".pdf,.doc,.docx,.jpg,.png">
+                </div>
+            </div>
+            <button onclick="register()" class="eye-catchy-btn full-width">Register</button>
+            <p class="toggle-link" onclick="toggleAuthForm('login')">Already registered? Login here.</p>
+        </div>
+        
+        <div id="error-message" class="error-message hidden"></div>
     </div>
-
 
     <div id="main-container" class="hidden container">
-        <h2 class="welcome-message">Hello, <span id="user-name"></span>! Welcome to my website.</h2>
+        <!-- Theme Toggle Button -->
+        <div class="theme-toggle-container">
+            <button id="theme-toggle-btn" class="eye-catchy-btn">
+                <i class="fas fa-moon"></i> Night Mode
+            </button>
+        </div>
+
+        <!-- Welcome Message -->
+        <div id="typing-effect" class="welcome-message"></div>
+
+        <!-- Quote Container -->
+        <div id="quote-container">
+            <p id="quote-text"></p>
+            <small id="quote-author"></small>
+        </div>
+
+        <!-- Main Navigation -->
         <nav>
-            <button onclick="showContent('movies')">Watch Movies</button>
-            <button onclick="showContent('articles')">Read Articles</button>
-            <button onclick="showContent('explore')">Explore World</button>
-            <button onclick="showContent('AET')">Agricultural Engineering & Technology</button>
+            <button onclick="showContent('courses')" class="eye-catchy-btn nav-btn" id="course-section-btn">
+                <i class="fas fa-graduation-cap"></i> Course Selection
+            </button>
+            <button onclick="showContent('articles')" class="eye-catchy-btn nav-btn">
+                <i class="fas fa-newspaper"></i> Read Articles
+            </button>
+            <button onclick="showContent('diary')" class="eye-catchy-btn nav-btn">
+                <i class="fas fa-book"></i> Study Diary
+            </button>
+            <button onclick="showContent('music')" class="eye-catchy-btn nav-btn">
+                <i class="fas fa-music"></i> Music Player
+            </button>
+            <button onclick="showContent('movies')" class="eye-catchy-btn nav-btn">
+                <i class="fas fa-film"></i> Watch Movies
+            </button>
         </nav>
 
-    <div class="daynight-switch">
-      <button id="day" onclick="bckgroundImaged('day')">
-        <i class="fas fa-sun"></i>
-      </button>
-      <button id="night" onclick="bckgroundImagen('night')">
-        <i class="fas fa-moon"></i>
-      </button>
+        <!-- User Stats -->
+        <div class="user-stats">
+            <p id="user-count-display">Total Users: 0</p>
+            <button onclick="showInstructions()" class="eye-catchy-btn small-btn">
+                <i class="fas fa-info-circle"></i> Instructions
+            </button>
+            <button onclick="showUserList()" class="admin-only eye-catchy-btn small-btn">
+                <i class="fas fa-users"></i> View User Data
+            </button> 
+        </div>
+
+        <!-- Main Content Area -->
+        <div id="content">
+            <div class="welcome-section">
+                <h2>Welcome to EduHub!</h2>
+                <p>Select a section from the navigation menu to get started.</p>
+            </div>
+        </div>
+
+        <!-- Logout Button -->
+        <button onclick="logout()" id="logout-btn" class="eye-catchy-btn">
+            <i class="fas fa-sign-out-alt"></i> Logout
+        </button>
     </div>
 
-    
+    <!-- Visual Effects -->
+    <div id="nebulaLight"></div>
+    <div id="clock"></div>
 
-        <div id="content">Choose an option above to explore!</div>
-        <button onclick="logout()">Logout</button>
+    <!-- Audio Elements -->
+    <audio id="welcome-chime" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"></audio>
 
+    <!-- Popup -->
+    <div id="popup" class="popup hidden">
+        <h3>Success!</h3>
+        <button onclick="closePopup()" class="eye-catchy-btn">Close</button>
     </div>
 
-<div id="nebulaLight"></div>
-<div id="clock"></div>
-
-
-
-
-    <!-- Popup for successful login -->
-    <div id="popup" class="popup">
-        <h3>Login Successful!</h3>
-        <button onclick="closePopup()">Close</button>
+    <!-- About Developer -->
+    <div id="about-container">
+        <button id="toggle-about" class="eye-catchy-btn">
+            <i class="fas fa-user"></i> About the Developer
+        </button>
+        <div id="about-section" class="hidden">
+            <div class="about-content">
+                <h3>About the Developer</h3>
+                <div class="developer-info">
+                    <div class="dev-photo-container">
+                        <img src="./CSS/deboneel dp.jpeg" alt="Developer Photo" id="dev-photo" />
+                    </div>
+                    <div class="dev-details">
+                        <p><strong>Name:</strong> Deboneel Partho</p>
+                        <p><strong>ID No:</strong> 2105056</p>
+                        <p><strong>Department:</strong> Irrigation and Water Management</p>
+                        <p><strong>Faculty:</strong> Agricultural Engineering and Technology</p>
+                        <p><strong>University:</strong> Bangladesh Agricultural University, Mymensingh</p>
+                    </div>
+                </div>
+                <div class="social-links">
+                    <a href="https://www.instagram.com/deboneel_partho?igsh=MWdjMHZrMnZhMTVpeQ==" target="_blank">
+                        <i class="fab fa-instagram"></i>
+                    </a>
+                    <a href="https://www.linkedin.com/in/deboneelpartho?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" target="_blank">
+                        <i class="fab fa-linkedin-in"></i>
+                    </a>
+                    <a href="https://www.facebook.com/share/16ZLuXf22D/" target="_blank">
+                        <i class="fab fa-facebook-f"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
     </div>
-
-
-
-
-
-
-
     
-<div id="about-container">
-  <button id="toggle-about">About the Developer</button>
-  <div id="about-section" style="display: none;">
-    <h3>About the Developer</h3>
-    <img src="deboneel dp.jpeg" alt="Developer Photo" id="dev-photo" />
-    <p><strong>Name:</strong> Deboneel Partho</p>
-    <p><strong>ID No:</strong> 2105056</p>
-    <p><strong>Department:</strong> Irrigation and Water Management</p>
-    <p><strong>Faculty:</strong> Agricultural Engineering and Technology</p>
-    <p><strong>University:</strong> Bangladesh Agricultural University, Mymensingh</p>
-    
-   <div class="social-links">
-  <a href="https://www.instagram.com/deboneel_partho?igsh=MWdjMHZrMnZhMTVpeQ==" target="_blank">
-    <i class="fab fa-instagram"></i>
-  </a>
-  <a href="https://www.linkedin.com/in/deboneelpartho?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" target="_blank">
-    <i class="fab fa-linkedin-in"></i>
-  </a>
-  <a href="https://www.facebook.com/share/16ZLuXf22D/" target="_blank">
-    <i class="fab fa-facebook-f"></i>
-  </a>
-</div>
-
-  </div>
-</div>
-
-    
-    <script src="script.js"></script>
+    <script src="./JS/script.js"></script>
 </body>
 </html>
