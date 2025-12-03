@@ -7,7 +7,14 @@
     <link rel="stylesheet" href="./styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
+    <!-- Chart.js for statistics -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-firestore.js"></script>
+<script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-analytics.js"></script>
 
 <body>
     <div id="auth-container" class="login-box">
@@ -129,13 +136,31 @@
 
         <!-- User Stats -->
         <div class="user-stats">
-            <p id="user-count-display">Total Users: 0</p>
+            <div id="user-counts-display">
+                <p>
+                    <span class="stat-item">
+                        <i class="fas fa-globe"></i> Global Users: 
+                        <span id="global-user-count">0</span>
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-laptop"></i> Local Users: 
+                        <span id="local-user-count">0</span>
+                    </span>
+                    <span class="stat-item">
+                        <i class="fas fa-eye"></i> Live Viewers: 
+                        <span id="live-viewers">0</span>
+                    </span>
+                </p>
+            </div>
             <button onclick="showInstructions()" class="eye-catchy-btn small-btn">
                 <i class="fas fa-info-circle"></i> Instructions
             </button>
             <button onclick="showUserList()" class="admin-only eye-catchy-btn small-btn">
                 <i class="fas fa-users"></i> View User Data
-            </button> 
+            </button>
+            <button onclick="showDetailedStats()" class="admin-only eye-catchy-btn small-btn">
+                <i class="fas fa-chart-bar"></i> Detailed Stats
+            </button>
         </div>
 
         <!-- Main Content Area -->
@@ -163,6 +188,66 @@
     <div id="popup" class="popup hidden">
         <h3>Success!</h3>
         <button onclick="closePopup()" class="eye-catchy-btn">Close</button>
+    </div>
+
+    <!-- Admin Panel Modal -->
+    <div id="admin-panel-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-chart-line"></i> Admin Dashboard</h3>
+                <button onclick="closeAdminPanel()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <h4><i class="fas fa-globe"></i> Global Statistics</h4>
+                        <div class="stat-value" id="admin-global-count">0</div>
+                        <p>Total registered users worldwide</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4><i class="fas fa-laptop"></i> Local Statistics</h4>
+                        <div class="stat-value" id="admin-local-count">0</div>
+                        <p>Users registered on this device</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4><i class="fas fa-eye"></i> Live Activity</h4>
+                        <div class="stat-value" id="admin-active-now">0</div>
+                        <p>Currently active users</p>
+                    </div>
+                    <div class="stat-card">
+                        <h4><i class="fas fa-calendar-day"></i> Today</h4>
+                        <div class="stat-value" id="admin-today-count">0</div>
+                        <p>New users today</p>
+                    </div>
+                </div>
+                
+                <div class="charts-section">
+                    <h4><i class="fas fa-chart-bar"></i> User Growth</h4>
+                    <div class="chart-container">
+                        <canvas id="user-growth-chart"></canvas>
+                    </div>
+                </div>
+                
+                <div class="user-list-section">
+                    <h4><i class="fas fa-users"></i> Recent Global Users</h4>
+                    <div id="recent-users-list" class="user-list">
+                        <!-- Recent users will be populated here -->
+                    </div>
+                </div>
+                
+                <div class="admin-actions">
+                    <button onclick="exportUserData()" class="eye-catchy-btn">
+                        <i class="fas fa-download"></i> Export Global Data
+                    </button>
+                    <button onclick="exportLocalData()" class="eye-catchy-btn">
+                        <i class="fas fa-download"></i> Export Local Data
+                    </button>
+                    <button onclick="refreshStats()" class="eye-catchy-btn">
+                        <i class="fas fa-sync-alt"></i> Refresh Stats
+                    </button>
+                </div>
+            </div>
+        </div>
     </div>
 
     <!-- About Developer -->

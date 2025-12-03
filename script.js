@@ -10,6 +10,15 @@ let currentTrack = 0;
 let isMusicPlaying = false;
 let isDayMode = false;
 let audioElement = null;
+let db = null;
+let analytics = null;
+let userChart = null;
+let globalUserStats = {
+    totalUsers: 0,
+    todayUsers: 0,
+    activeNow: 0,
+    userGrowth: []
+};
 
 // Educational Courses Data with Google Drive Links
 const courses = {
@@ -154,8 +163,207 @@ const agQuotes = [
     { text: "জলের এক ফোঁটাও যেন বৃথা না যায় - সেচ প্রকৌশলের মূলমন্ত্র", author: "Water Management Expert" }
 ];
 
+// ==================== FIREBASE INITIALIZATION ====================
+function initializeFirebase() {
+    const firebaseConfig = {
+        apiKey: "AIzaSyAYSVt4WnK7GiqocyBGJ5B0LvBA0AGfsE0",
+        authDomain: "aet-website-88e0f.firebaseapp.com",
+        projectId: "aet-website-88e0f",
+        storageBucket: "aet-website-88e0f.firebasestorage.app",
+        messagingSenderId: "1035844272124",
+        appId: "1:1035844272124:web:68c1735e0e3e236a727c79"
+    };
+
+    try {
+        // Initialize Firebase
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        db = firebase.firestore();
+        console.log("✅ Firebase initialized successfully!");
+        
+        // Start tracking
+        trackUserActivity();
+        setupRealtimeListeners();
+        
+    } catch (error) {
+        console.error("❌ Firebase initialization failed:", error);
+    }
+}
+
+// ==================== USER ACTIVITY TRACKING ====================
+async function trackUserActivity() {
+    if (!db) return;
+    
+    const userId = getOrCreateGlobalUserId();
+    const userAgent = navigator.userAgent;
+    const screenRes = `${window.screen.width}x${window.screen.height}`;
+    const referrer = document.referrer || 'direct';
+    const pageUrl = window.location.href;
+    
+    try {
+        // Track page view
+        await db.collection('pageViews').add({
+            userId: userId,
+            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
+            userAgent: userAgent,
+            screenResolution: screenRes,
+            referrer: referrer,
+            pageUrl: pageUrl
+        });
+        
+        // Update user's last activity
+        await db.collection('users').doc(userId).set({
+            lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+            userAgent: userAgent,
+            screenResolution: screenRes
+        }, { merge: true });
+        
+        // Update active users
+        await updateActiveUsers(userId);
+        
+        console.log("✅ User activity tracked successfully");
+        
+    } catch (error) {
+        console.error("❌ Error tracking user activity:", error);
+    }
+}
+
+function getOrCreateGlobalUserId() {
+    let userId = localStorage.getItem('globalUserId');
+    if (!userId) {
+        userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
+        localStorage.setItem('globalUserId', userId);
+        registerGlobalUser(userId);
+    }
+    return userId;
+}
+
+async function registerGlobalUser(userId) {
+    if (!db) return;
+    
+    try {
+        await db.collection('users').doc(userId).set({
+            userId: userId,
+            firstVisit: firebase.firestore.FieldValue.serverTimestamp(),
+            lastVisit: firebase.firestore.FieldValue.serverTimestamp(),
+            totalVisits: 1,
+            userAgent: navigator.userAgent,
+            screenResolution: `${window.screen.width}x${window.screen.height}`
+        });
+        
+        console.log("✅ New global user registered:", userId);
+        updateGlobalStats();
+        
+    } catch (error) {
+        console.error("❌ Error registering global user:", error);
+    }
+}
+
+async function updateActiveUsers(userId) {
+    if (!db) return;
+    
+    try {
+        await db.collection('activeUsers').doc(userId).set({
+            userId: userId,
+            lastActive: firebase.firestore.FieldValue.serverTimestamp(),
+            pageUrl: window.location.href
+        });
+        
+        // Clean up inactive users (older than 5 minutes)
+        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+        const inactiveUsers = await db.collection('activeUsers')
+            .where('lastActive', '<', fiveMinutesAgo)
+            .get();
+            
+        inactiveUsers.forEach(async (doc) => {
+            await doc.ref.delete();
+        });
+        
+    } catch (error) {
+        console.error("❌ Error updating active users:", error);
+    }
+}
+
+// ==================== REALTIME LISTENERS ====================
+function setupRealtimeListeners() {
+    if (!db) return;
+    
+    // Listen for total users count
+    db.collection('users').onSnapshot((snapshot) => {
+        globalUserStats.totalUsers = snapshot.size;
+        updateUserCountsDisplay();
+        if (currentUserRole === 'admin') {
+            updateAdminPanel();
+        }
+    });
+    
+    // Listen for active users
+    db.collection('activeUsers').onSnapshot((snapshot) => {
+        globalUserStats.activeNow = snapshot.size;
+        updateUserCountsDisplay();
+        if (currentUserRole === 'admin') {
+            updateAdminPanel();
+        }
+    });
+    
+    // Listen for today's users
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    db.collection('users')
+        .where('firstVisit', '>=', today)
+        .onSnapshot((snapshot) => {
+            globalUserStats.todayUsers = snapshot.size;
+            if (currentUserRole === 'admin') {
+                updateAdminPanel();
+            }
+        });
+}
+
+async function updateGlobalStats() {
+    if (!db) return;
+    
+    try {
+        const usersSnapshot = await db.collection('users').get();
+        globalUserStats.totalUsers = usersSnapshot.size;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const todaySnapshot = await db.collection('users')
+            .where('firstVisit', '>=', today)
+            .get();
+        globalUserStats.todayUsers = todaySnapshot.size;
+        
+        const activeSnapshot = await db.collection('activeUsers').get();
+        globalUserStats.activeNow = activeSnapshot.size;
+        
+        updateUserCountsDisplay();
+        
+    } catch (error) {
+        console.error("❌ Error updating global stats:", error);
+    }
+}
+
+function updateUserCountsDisplay() {
+    const globalCountEl = document.getElementById('global-user-count');
+    const localCountEl = document.getElementById('local-user-count');
+    const liveViewersEl = document.getElementById('live-viewers');
+    
+    if (globalCountEl) {
+        globalCountEl.textContent = globalUserStats.totalUsers;
+    }
+    
+    if (localCountEl) {
+        localCountEl.textContent = Object.keys(registeredUsers).filter(id => id !== ADMIN_ID).length;
+    }
+    
+    if (liveViewersEl) {
+        liveViewersEl.textContent = globalUserStats.activeNow;
+    }
+}
+
 // ==================== INITIAL ADMIN USER ====================
-// Add admin user if not exists
 function initializeAdminUser() {
     if (!registeredUsers[ADMIN_ID]) {
         registeredUsers[ADMIN_ID] = {
@@ -175,6 +383,9 @@ function initializeAdminUser() {
 
 // ==================== WINDOW ONLOAD ====================
 window.onload = function () {
+    // Initialize Firebase
+    initializeFirebase();
+    
     // Initialize admin user
     initializeAdminUser();
     
@@ -205,6 +416,9 @@ window.onload = function () {
         toggleAuthForm('register');
         setTheme(true); // Day mode for auth screen
     }
+    
+    // Update global stats every minute
+    setInterval(updateGlobalStats, 60000);
 };
 
 // ==================== EVENT LISTENERS SETUP ====================
@@ -213,23 +427,49 @@ function setupEventListeners() {
     document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
     
     // Department select change
-    document.getElementById('reg-department').addEventListener('change', function() {
-        const otherGroup = document.getElementById('other-department-group');
-        if (this.value === 'Others') {
-            otherGroup.classList.remove('hidden');
-        } else {
-            otherGroup.classList.add('hidden');
-        }
-    });
+    const regDepartment = document.getElementById('reg-department');
+    if (regDepartment) {
+        regDepartment.addEventListener('change', function() {
+            const otherGroup = document.getElementById('other-department-group');
+            if (this.value === 'Others') {
+                otherGroup.classList.remove('hidden');
+            } else {
+                otherGroup.classList.add('hidden');
+            }
+        });
+    }
     
     // About toggle
-    document.getElementById('toggle-about').addEventListener('click', function() {
-        const section = document.getElementById('about-section');
-        section.classList.toggle('hidden');
-    });
+    const toggleAbout = document.getElementById('toggle-about');
+    if (toggleAbout) {
+        toggleAbout.addEventListener('click', function() {
+            const section = document.getElementById('about-section');
+            section.classList.toggle('hidden');
+        });
+    }
     
     // Mouse trail effect
     document.addEventListener('mousemove', createMouseTrail);
+    
+    // Close admin panel when clicking outside
+    document.addEventListener('click', function(event) {
+        const modal = document.getElementById('admin-panel-modal');
+        const modalContent = document.querySelector('.modal-content');
+        const detailedStatsBtn = document.querySelector('button[onclick="showDetailedStats()"]');
+        
+        if (modal && !modal.classList.contains('hidden') && 
+            !modalContent.contains(event.target) && 
+            event.target !== detailedStatsBtn) {
+            closeAdminPanel();
+        }
+    });
+    
+    // Close admin panel with Escape key
+    document.addEventListener('keydown', function(event) {
+        if (event.key === 'Escape') {
+            closeAdminPanel();
+        }
+    });
 }
 
 // ==================== THEME MANAGEMENT ====================
@@ -242,18 +482,20 @@ function setTheme(dayMode) {
     isDayMode = dayMode;
     const body = document.body;
     const themeBtn = document.getElementById('theme-toggle-btn');
+    if (!themeBtn) return;
+    
     const icon = themeBtn.querySelector('i');
     
     if (dayMode) {
         body.classList.add('day-mode');
         body.classList.remove('night-mode');
         themeBtn.innerHTML = '<i class="fas fa-moon"></i> Switch to Night Mode';
-        icon.className = 'fas fa-moon';
+        if (icon) icon.className = 'fas fa-moon';
     } else {
         body.classList.add('night-mode');
         body.classList.remove('day-mode');
         themeBtn.innerHTML = '<i class="fas fa-sun"></i> Switch to Day Mode';
-        icon.className = 'fas fa-sun';
+        if (icon) icon.className = 'fas fa-sun';
     }
     
     localStorage.setItem('theme', dayMode ? 'day' : 'night');
@@ -278,38 +520,40 @@ function updateAdminView() {
 
 // ==================== FORM TOGGLE ====================
 function toggleAuthForm(formType) {
-    document.getElementById('login-form').classList.add('hidden');
-    document.getElementById('registration-form').classList.add('hidden');
-    document.getElementById('error-message').classList.add('hidden');
+    const loginForm = document.getElementById('login-form');
+    const registerForm = document.getElementById('registration-form');
+    const errorMessage = document.getElementById('error-message');
+    
+    if (loginForm) loginForm.classList.add('hidden');
+    if (registerForm) registerForm.classList.add('hidden');
+    if (errorMessage) errorMessage.classList.add('hidden');
 
     if (formType === 'login') {
-        document.getElementById('login-form').classList.remove('hidden');
+        if (loginForm) loginForm.classList.remove('hidden');
         setTheme(false); // Night mode for login
     } else {
-        document.getElementById('registration-form').classList.remove('hidden');
+        if (registerForm) registerForm.classList.remove('hidden');
         setTheme(true); // Day mode for registration
     }
 }
 
 // ==================== REGISTRATION ====================
 function register() {
-    const id = document.getElementById("reg-id").value.trim();
-    const fullName = document.getElementById("reg-fullname").value.trim();
-    const nickname = document.getElementById("reg-nickname").value.trim();
-    const regNo = document.getElementById("reg-regno").value.trim();
-    const college = document.getElementById("reg-college").value.trim();
-    const department = document.getElementById("reg-department").value;
-    const otherDepartment = document.getElementById("reg-other-department").value.trim();
-    const email = document.getElementById("reg-email").value.trim();
-    const password = document.getElementById("reg-password").value.trim();
-    const confirmPassword = document.getElementById("reg-confirm-password").value.trim();
-    const hometown = document.getElementById("reg-hometown").value.trim();
-    const hallName = document.getElementById("reg-hallname").value.trim();
-    const supervisor = document.getElementById("reg-supervisor").value.trim();
-    const phone = document.getElementById("reg-phone").value.trim();
-    const files = document.getElementById("reg-documents").files;
-
-    const errorMessage = document.getElementById('error-message');
+    const id = document.getElementById("reg-id")?.value.trim();
+    const fullName = document.getElementById("reg-fullname")?.value.trim();
+    const nickname = document.getElementById("reg-nickname")?.value.trim();
+    const regNo = document.getElementById("reg-regno")?.value.trim();
+    const college = document.getElementById("reg-college")?.value.trim();
+    const department = document.getElementById("reg-department")?.value;
+    const otherDepartment = document.getElementById("reg-other-department")?.value.trim();
+    const email = document.getElementById("reg-email")?.value.trim();
+    const password = document.getElementById("reg-password")?.value.trim();
+    const confirmPassword = document.getElementById("reg-confirm-password")?.value.trim();
+    const hometown = document.getElementById("reg-hometown")?.value.trim();
+    const hallName = document.getElementById("reg-hallname")?.value.trim();
+    const supervisor = document.getElementById("reg-supervisor")?.value.trim();
+    const phone = document.getElementById("reg-phone")?.value.trim();
+    const files = document.getElementById("reg-documents")?.files || [];
 
     // Validation
     if (!id || !fullName || !nickname || !regNo || !college || !department || !password || !confirmPassword) {
@@ -337,7 +581,7 @@ function register() {
         return;
     }
 
-    // Save user
+    // Save user locally
     registeredUsers[id] = {
         id,
         fullName,
@@ -378,9 +622,8 @@ function register() {
 
 // ==================== LOGIN ====================
 function login() {
-    const username = document.getElementById("login-username").value.trim();
-    const password = document.getElementById("login-password").value.trim();
-    const errorMessage = document.getElementById('error-message');
+    const username = document.getElementById("login-username")?.value.trim();
+    const password = document.getElementById("login-password")?.value.trim();
 
     const user = registeredUsers[username];
 
@@ -431,6 +674,7 @@ function logout() {
 // ==================== CONTENT DISPLAY ====================
 function showContent(type) {
     const content = document.getElementById("content");
+    if (!content) return;
     
     switch(type) {
         case 'courses':
@@ -459,6 +703,8 @@ function showContent(type) {
 
 function displayCourses() {
     const content = document.getElementById("content");
+    if (!content) return;
+    
     const userDepartment = getUserDepartment();
     
     let html = `
@@ -554,6 +800,8 @@ function getUserDepartment() {
 
 function displayArticles() {
     const content = document.getElementById("content");
+    if (!content) return;
+    
     let html = `
         <h2 style="color:#ff7eb3; margin-bottom: 20px;">
             <i class="fas fa-newspaper"></i> Educational Articles
@@ -601,6 +849,8 @@ function readArticle(title) {
     const article = articles.find(a => a.title === title);
     if (article) {
         const content = document.getElementById("content");
+        if (!content) return;
+        
         content.innerHTML = `
             <div style="text-align: left; max-width: 800px; margin: 0 auto;">
                 <button onclick="displayArticles()" class="eye-catchy-btn small-btn" style="margin-bottom: 20px;">
@@ -629,6 +879,8 @@ function readArticle(title) {
 
 function displayDiary() {
     const content = document.getElementById("content");
+    if (!content) return;
+    
     content.innerHTML = `
         <div class="diary-section">
             <h2 style="color:#ff7eb3; margin-bottom: 20px;">
@@ -658,7 +910,8 @@ function displayDiary() {
     // Load saved diary content
     const savedNote = localStorage.getItem('userDiaryNote');
     if (savedNote) {
-        document.getElementById('user-diary').value = savedNote;
+        const diaryArea = document.getElementById('user-diary');
+        if (diaryArea) diaryArea.value = savedNote;
     }
     
     // Setup diary event listeners
@@ -673,24 +926,28 @@ function setupDiaryListeners() {
     
     if (saveBtn) {
         saveBtn.addEventListener('click', () => {
-            const note = diaryArea.value;
+            const note = diaryArea ? diaryArea.value : '';
             localStorage.setItem('userDiaryNote', note);
-            statusText.textContent = '✓ Note saved successfully!';
-            setTimeout(() => {
-                statusText.textContent = '';
-            }, 3000);
+            if (statusText) {
+                statusText.textContent = '✓ Note saved successfully!';
+                setTimeout(() => {
+                    statusText.textContent = '';
+                }, 3000);
+            }
         });
     }
     
     if (clearBtn) {
         clearBtn.addEventListener('click', () => {
             if (confirm('Are you sure you want to clear your diary? This action cannot be undone.')) {
-                diaryArea.value = '';
+                if (diaryArea) diaryArea.value = '';
                 localStorage.removeItem('userDiaryNote');
-                statusText.textContent = '✗ Diary cleared successfully!';
-                setTimeout(() => {
-                    statusText.textContent = '';
-                }, 3000);
+                if (statusText) {
+                    statusText.textContent = '✗ Diary cleared successfully!';
+                    setTimeout(() => {
+                        statusText.textContent = '';
+                    }, 3000);
+                }
             }
         });
     }
@@ -699,6 +956,8 @@ function setupDiaryListeners() {
 // ==================== MUSIC PLAYER ====================
 function displayMusicPlayer() {
     const content = document.getElementById("content");
+    if (!content) return;
+    
     const currentMusic = musicPlaylist[currentTrack];
     
     content.innerHTML = `
@@ -830,6 +1089,8 @@ function openYouTubeLink(url) {
 
 function displayMovies() {
     const content = document.getElementById("content");
+    if (!content) return;
+    
     content.innerHTML = `
         <div style="text-align: center;">
             <h2 style="color:#ff7eb3; margin-bottom: 20px;">
@@ -887,7 +1148,7 @@ function displayMovies() {
 }
 
 function submitMovieRequest() {
-    const movieName = document.getElementById("movie-name").value.trim();
+    const movieName = document.getElementById("movie-name")?.value.trim();
     if (movieName) {
         const subject = "Educational Content Request";
         const body = `I would like to request educational content about: ${movieName}`;
@@ -907,6 +1168,8 @@ function watchContent(type) {
     
     if (videos[type]) {
         const content = document.getElementById("content");
+        if (!content) return;
+        
         content.innerHTML = `
             <div style="text-align: left;">
                 <button onclick="displayMovies()" class="eye-catchy-btn small-btn" style="margin-bottom: 20px;">
@@ -931,6 +1194,8 @@ function showUserList() {
     }
 
     const content = document.getElementById("content");
+    if (!content) return;
+    
     const users = Object.values(registeredUsers);
 
     let html = `<h2 style="color:#ff7eb3; margin-bottom: 20px;">Registered Users (${users.length})</h2>`;
@@ -969,10 +1234,304 @@ function showUserList() {
     content.innerHTML = html;
 }
 
+// ==================== ADMIN PANEL FUNCTIONS ====================
+function showDetailedStats() {
+    if (currentUserRole !== 'admin') {
+        alert("Access Denied! Admin Only Feature.");
+        return;
+    }
+    
+    const modal = document.getElementById('admin-panel-modal');
+    if (!modal) {
+        console.error("Admin panel modal not found!");
+        return;
+    }
+    
+    modal.classList.remove('hidden');
+    modal.style.display = 'block';
+    
+    // Add active class for animation
+    setTimeout(() => {
+        modal.style.opacity = '1';
+    }, 10);
+    
+    updateAdminPanel();
+}
+
+function closeAdminPanel() {
+    const modal = document.getElementById('admin-panel-modal');
+    if (!modal) return;
+    
+    modal.style.opacity = '0';
+    setTimeout(() => {
+        modal.classList.add('hidden');
+        modal.style.display = 'none';
+    }, 300);
+}
+
+async function updateAdminPanel() {
+    if (!db) {
+        console.log("Firebase not initialized");
+        return;
+    }
+    
+    try {
+        // Update basic stats
+        const globalCountEl = document.getElementById('admin-global-count');
+        const localCountEl = document.getElementById('admin-local-count');
+        const activeNowEl = document.getElementById('admin-active-now');
+        const todayCountEl = document.getElementById('admin-today-count');
+        
+        if (globalCountEl) {
+            globalCountEl.textContent = globalUserStats.totalUsers;
+        }
+        if (localCountEl) {
+            localCountEl.textContent = Object.keys(registeredUsers).filter(id => id !== ADMIN_ID).length;
+        }
+        if (activeNowEl) {
+            activeNowEl.textContent = globalUserStats.activeNow;
+        }
+        if (todayCountEl) {
+            todayCountEl.textContent = globalUserStats.todayUsers;
+        }
+        
+        // Get recent global users
+        const usersSnapshot = await db.collection('users')
+            .orderBy('firstVisit', 'desc')
+            .limit(10)
+            .get();
+        
+        const recentUsersList = document.getElementById('recent-users-list');
+        if (recentUsersList) {
+            recentUsersList.innerHTML = '';
+            
+            if (usersSnapshot.empty) {
+                recentUsersList.innerHTML = '<p style="color: rgba(255,255,255,0.6); text-align: center; padding: 20px;">No global users yet</p>';
+            } else {
+                usersSnapshot.forEach((doc) => {
+                    const user = doc.data();
+                    const userEl = document.createElement('div');
+                    userEl.className = 'recent-user-item';
+                    userEl.innerHTML = `
+                        <div class="user-avatar">
+                            <i class="fas fa-user-circle"></i>
+                        </div>
+                        <div class="user-info">
+                            <div class="user-id">${user.userId.substring(0, 12)}...</div>
+                            <div class="user-time">${formatFirestoreDate(user.firstVisit)}</div>
+                        </div>
+                    `;
+                    recentUsersList.appendChild(userEl);
+                });
+            }
+        }
+        
+        // Update chart
+        updateUserGrowthChart();
+        
+    } catch (error) {
+        console.error("Error updating admin panel:", error);
+    }
+}
+
+function formatFirestoreDate(timestamp) {
+    if (!timestamp) return 'N/A';
+    try {
+        const date = timestamp.toDate();
+        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+    } catch {
+        return 'N/A';
+    }
+}
+
+function updateUserGrowthChart() {
+    const ctx = document.getElementById('user-growth-chart');
+    if (!ctx) {
+        console.log("Chart canvas not found");
+        return;
+    }
+    
+    // Destroy existing chart
+    if (userChart) {
+        userChart.destroy();
+    }
+    
+    // Create new chart
+    userChart = new Chart(ctx.getContext('2d'), {
+        type: 'line',
+        data: {
+            labels: generateLast7Days(),
+            datasets: [{
+                label: 'User Growth',
+                data: generateGrowthData(),
+                borderColor: '#ff7eb3',
+                backgroundColor: 'rgba(255, 126, 179, 0.1)',
+                tension: 0.4,
+                fill: true,
+                pointBackgroundColor: '#00ffc8',
+                pointBorderColor: '#fff',
+                pointBorderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#fff',
+                        font: {
+                            size: 14
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#ff7eb3',
+                    bodyColor: '#fff',
+                    borderColor: '#ff7eb3',
+                    borderWidth: 1
+                }
+            },
+            scales: {
+                x: {
+                    ticks: {
+                        color: 'rgba(255,255,255,0.7)'
+                    },
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    }
+                },
+                y: {
+                    beginAtZero: true,
+                    ticks: {
+                        color: 'rgba(255,255,255,0.7)'
+                    },
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function generateLast7Days() {
+    const days = [];
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
+    }
+    return days;
+}
+
+function generateGrowthData() {
+    // Simulate growth data - in real app, fetch from Firebase
+    const base = globalUserStats.totalUsers;
+    return [
+        Math.max(0, base - 30),
+        Math.max(0, base - 25),
+        Math.max(0, base - 20),
+        Math.max(0, base - 15),
+        Math.max(0, base - 10),
+        Math.max(0, base - 5),
+        base
+    ];
+}
+
+async function exportUserData() {
+    if (!db) {
+        showPopup("Firebase not initialized!");
+        return;
+    }
+    
+    try {
+        const usersSnapshot = await db.collection('users').get();
+        const users = [];
+        
+        usersSnapshot.forEach((doc) => {
+            const user = doc.data();
+            users.push({
+                UserID: user.userId,
+                FirstVisit: formatFirestoreDate(user.firstVisit),
+                LastVisit: formatFirestoreDate(user.lastVisit),
+                UserAgent: user.userAgent || 'N/A',
+                ScreenResolution: user.screenResolution || 'N/A'
+            });
+        });
+        
+        if (users.length === 0) {
+            showPopup("No global users to export!");
+            return;
+        }
+        
+        // Convert to CSV
+        const csvContent = [
+            ['UserID', 'FirstVisit', 'LastVisit', 'UserAgent', 'ScreenResolution'],
+            ...users.map(u => [u.UserID, u.FirstVisit, u.LastVisit, u.UserAgent, u.ScreenResolution])
+        ].map(row => row.join(',')).join('\n');
+        
+        // Download CSV
+        const blob = new Blob([csvContent], { type: 'text/csv' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `eduhub-global-users-${new Date().toISOString().split('T')[0]}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        
+        showPopup('Global user data exported successfully!');
+    } catch (error) {
+        console.error("Error exporting data:", error);
+        showPopup('Error exporting data');
+    }
+}
+
+function exportLocalData() {
+    const users = Object.values(registeredUsers).filter(u => u.id !== ADMIN_ID);
+    
+    if (users.length === 0) {
+        showPopup('No local users to export!');
+        return;
+    }
+    
+    const csvContent = [
+        ['ID', 'FullName', 'Nickname', 'RegistrationNo', 'College', 'Department', 'Email', 'RegistrationDate'],
+        ...users.map(u => [u.id, u.fullName, u.nickname, u.regNo, u.college, u.department, u.email, u.registrationDate])
+    ].map(row => row.join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `eduhub-local-users-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    showPopup('Local user data exported successfully!');
+}
+
+function refreshStats() {
+    updateGlobalStats();
+    if (userChart) {
+        userChart.destroy();
+        userChart = null;
+    }
+    updateUserGrowthChart();
+    showPopup('Statistics refreshed!');
+}
+
 function showPopup(msg) {
     const popup = document.getElementById("popup");
-    const newMsg = `🎉 ${msg} Enjoy your learning journey! 🚀`;
-    popup.querySelector('h3').textContent = newMsg;
+    if (!popup) return;
+    
+    const newMsg = `🎉 ${msg} 🚀`;
+    const h3 = popup.querySelector('h3');
+    if (h3) h3.textContent = newMsg;
+    
     popup.style.display = "block";
     popup.style.transform = "translate(-50%, -50%) scale(1)";
     
@@ -984,6 +1543,8 @@ function showPopup(msg) {
 
 function showError(msg) {
     const el = document.getElementById("error-message");
+    if (!el) return;
+    
     el.textContent = msg;
     el.classList.remove("hidden");
     setTimeout(() => {
@@ -992,7 +1553,10 @@ function showError(msg) {
 }
 
 function closePopup() {
-    document.getElementById("popup").style.display = "none";
+    const popup = document.getElementById("popup");
+    if (popup) {
+        popup.style.display = "none";
+    }
 }
 
 function updateClock() {
@@ -1085,9 +1649,11 @@ function showInstructions() {
     msg += "Use the Day/Night toggle button to switch themes\n";
     
     if (currentUserRole === 'admin') {
-        msg += "\nADMIN FEATURES:\n";
-        msg += "- View all registered users\n";
-        msg += "- Monitor platform usage\n";
+        msg += "\n🔧 ADMIN FEATURES:\n";
+        msg += "- View global user statistics\n";
+        msg += "- Track live active users\n";
+        msg += "- Monitor user growth with charts\n";
+        msg += "- Export global and local user data\n";
     }
     
     alert(msg);
@@ -1123,290 +1689,11 @@ window.addEventListener('resize', () => {
     corners[2].left = window.innerWidth - 170;
 });
 
-// ==================== GOOGLE SHEETS INTEGRATION ====================
-const GOOGLE_SHEET_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vSE5iY6FJ12deTkdWj-Ib86RHNf06HZJGq8FykSBMZB0Eqvi87bUOGO_08DnzD4yYiFFM6XAo8ee1au/pub?output=csv';
-
-// Store for fetched users from Google Sheets
-let globalUsers = [];
-
-// Function to fetch users from Google Sheets
-async function fetchUsersFromGoogleSheets() {
-    try {
-        const response = await fetch(GOOGLE_SHEET_URL);
-        const csvText = await response.text();
-        
-        // Parse CSV to JSON
-        const rows = csvText.split('\n').slice(1); // Skip header row
-        globalUsers = [];
-        
-        rows.forEach(row => {
-            if (row.trim()) {
-                const columns = row.split(',');
-                if (columns.length >= 9) {
-                    globalUsers.push({
-                        id: columns[0]?.trim() || '',
-                        fullName: columns[1]?.trim() || '',
-                        nickname: columns[2]?.trim() || '',
-                        regNo: columns[3]?.trim() || '',
-                        college: columns[4]?.trim() || '',
-                        department: columns[5]?.trim() || '',
-                        email: columns[6]?.trim() || '',
-                        password: columns[7]?.trim() || '',
-                        registrationDate: columns[8]?.trim() || new Date().toISOString(),
-                        hometown: columns[9]?.trim() || '',
-                        hallName: columns[10]?.trim() || '',
-                        supervisor: columns[11]?.trim() || '',
-                        phone: columns[12]?.trim() || ''
-                    });
-                }
-            }
-        });
-        
-        // Update total users count
-        updateGlobalUserCount();
-        return globalUsers;
-    } catch (error) {
-        console.error('Error fetching users from Google Sheets:', error);
-        return [];
+// Clean up when page is closed
+window.addEventListener('beforeunload', () => {
+    const userId = localStorage.getItem('globalUserId');
+    if (userId && db) {
+        // Remove from active users
+        db.collection('activeUsers').doc(userId).delete().catch(() => {});
     }
-}
-
-// Function to update global user count display
-function updateGlobalUserCount() {
-    const countDisplay = document.getElementById("user-count-display");
-    if (countDisplay) {
-        // Count non-admin users
-        const regularUsers = globalUsers.filter(user => user.id !== ADMIN_ID);
-        const localUsers = Object.keys(registeredUsers).filter(id => id !== ADMIN_ID).length;
-        
-        countDisplay.innerHTML = `
-            <div style="display: flex; flex-direction: column; gap: 5px;">
-                <span>Global Users: ${regularUsers.length}</span>
-                <small style="color: rgba(255,255,255,0.6);">Users on this device: ${localUsers}</small>
-            </div>
-        `;
-    }
-}
-
-// Function to save user to Google Sheets (via Form Submission)
-function saveUserToGoogleSheets(userData) {
-    // Create a Google Form submission URL (you need to create a Google Form linked to your sheet)
-    const formURL = 'https://docs.google.com/forms/d/e/1FAIpQLSeXXXXXXXXXXXXXXXXXXXXXXXXXXXXX/formResponse'; // You need to create this
-    
-    // Instead, we'll just fetch and update the local cache
-    fetchUsersFromGoogleSheets();
-    
-    // For now, we'll use a simple approach: Update the globalUsers array
-    globalUsers.push(userData);
-    updateGlobalUserCount();
-    
-    // Note: To actually save to Google Sheets, you need to:
-    // 1. Create a Google Form linked to your spreadsheet
-    // 2. Use the form submission URL above
-    // 3. Or use Google Apps Script (more complex)
-}
-
-// Updated registration function to work with Google Sheets
-async function registerWithGoogleSheets() {
-    const id = document.getElementById("reg-id").value.trim();
-    const fullName = document.getElementById("reg-fullname").value.trim();
-    const nickname = document.getElementById("reg-nickname").value.trim();
-    const regNo = document.getElementById("reg-regno").value.trim();
-    const college = document.getElementById("reg-college").value.trim();
-    const department = document.getElementById("reg-department").value;
-    const otherDepartment = document.getElementById("reg-other-department").value.trim();
-    const email = document.getElementById("reg-email").value.trim();
-    const password = document.getElementById("reg-password").value.trim();
-    const confirmPassword = document.getElementById("reg-confirm-password").value.trim();
-    const hometown = document.getElementById("reg-hometown").value.trim();
-    const hallName = document.getElementById("reg-hallname").value.trim();
-    const supervisor = document.getElementById("reg-supervisor").value.trim();
-    const phone = document.getElementById("reg-phone").value.trim();
-    const files = document.getElementById("reg-documents").files;
-
-    const errorMessage = document.getElementById('error-message');
-
-    // Validation
-    if (!id || !fullName || !nickname || !regNo || !college || !department || !password || !confirmPassword) {
-        showError("All required fields (*) must be filled!");
-        return;
-    }
-    
-    if (!/^\d{7}$/.test(id)) {
-        showError("ID must be exactly 7 digits (e.g., 2105056)");
-        return;
-    }
-    
-    if (password !== confirmPassword) {
-        showError("Passwords do not match!");
-        return;
-    }
-    
-    if (files.length > 3) {
-        showError("Maximum 3 documents allowed!");
-        return;
-    }
-    
-    // Check both local and global for existing user
-    if (registeredUsers[id] || id === ADMIN_ID) {
-        showError("This ID is already registered or reserved!");
-        return;
-    }
-
-    // Create user data
-    const userData = {
-        id,
-        fullName,
-        nickname,
-        regNo,
-        college,
-        department: department === 'Others' ? otherDepartment : department,
-        email,
-        password,
-        hometown,
-        hallName,
-        supervisor,
-        phone,
-        documentCount: files.length,
-        registrationDate: new Date().toISOString()
-    };
-
-    // Save to local storage
-    registeredUsers[id] = userData;
-    localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-    localStorage.setItem('currentUser', JSON.stringify({ 
-        username: id, 
-        password,
-        nickname,
-        department: department === 'Others' ? otherDepartment : department
-    }));
-
-    // Save to global users (Google Sheets cache)
-    saveUserToGoogleSheets(userData);
-
-    // Success
-    currentUserRole = 'user';
-    currentUserNickname = nickname;
-    document.getElementById("auth-container").classList.add("hidden");
-    document.getElementById("main-container").classList.remove("hidden");
-    setupTypingAnimation();
-    fireConfetti();
-    playWelcomeSound();
-    showPopup("Registration Successful! Your data is saved locally and globally.");
-    updateAdminView();
-    setTheme(false);
-    
-    // Refresh global user count
-    setTimeout(() => fetchUsersFromGoogleSheets(), 1000);
-}
-
-// Updated showUserList function to show from Google Sheets
-async function showGlobalUserList() {
-    if (currentUserRole !== 'admin') {
-        alert("Access Denied! Admin Only Feature.");
-        return;
-    }
-
-    const content = document.getElementById("content");
-    
-    // Show loading
-    content.innerHTML = `
-        <div style="text-align: center; padding: 50px;">
-            <h3 style="color:#ff7eb3;">Loading global user data...</h3>
-            <div class="spinner" style="margin: 20px auto; width: 40px; height: 40px; border: 4px solid rgba(255,255,255,0.3); border-radius: 50%; border-top-color: #ff7eb3; animation: spin 1s linear infinite;"></div>
-            <style>@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }</style>
-        </div>
-    `;
-    
-    try {
-        // Fetch latest data from Google Sheets
-        await fetchUsersFromGoogleSheets();
-        
-        let html = `<h2 style="color:#ff7eb3; margin-bottom: 20px;">Global Registered Users (${globalUsers.length})</h2>`;
-        
-        if (globalUsers.length === 0) {
-            content.innerHTML = html + `
-                <div style="background: rgba(255,126,179,0.1); padding: 20px; border-radius: 10px;">
-                    <p style="color: rgba(255,255,255,0.8);">No users found in global database.</p>
-                    <p style="color: rgba(255,255,255,0.6); font-size: 14px; margin-top: 10px;">
-                        Note: This shows users registered across all devices.
-                    </p>
-                </div>`;
-            return;
-        }
-
-        html += `
-            <div style="overflow-x: auto; margin-top: 20px;">
-                <table style="width:100%; border-collapse:collapse; background: rgba(0,0,0,0.3);">
-                    <thead>
-                        <tr style="background:rgba(255,126,179,0.2)">
-                            <th style="padding:12px; text-align:left;">ID</th>
-                            <th style="padding:12px; text-align:left;">Name</th>
-                            <th style="padding:12px; text-align:left;">Nickname</th>
-                            <th style="padding:12px; text-align:left;">College</th>
-                            <th style="padding:12px; text-align:left;">Department</th>
-                            <th style="padding:12px; text-align:left;">Registration Date</th>
-                        </tr>
-                    </thead>
-                    <tbody>`;
-
-        globalUsers.forEach(u => {
-            if (u.id !== ADMIN_ID) { // Don't show admin
-                html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
-                    <td style="padding:12px;">${u.id}</td>
-                    <td style="padding:12px;">${u.fullName}</td>
-                    <td style="padding:12px;">${u.nickname || '-'}</td>
-                    <td style="padding:12px;">${u.college}</td>
-                    <td style="padding:12px;">${u.department}</td>
-                    <td style="padding:12px;">${new Date(u.registrationDate).toLocaleDateString()}</td>
-                </tr>`;
-            }
-        });
-        
-        html += `</tbody></table></div>`;
-        
-        // Add refresh button
-        html += `
-            <div style="margin-top: 20px; text-align: center;">
-                <button onclick="showGlobalUserList()" class="eye-catchy-btn small-btn">
-                    <i class="fas fa-sync-alt"></i> Refresh List
-                </button>
-            </div>
-        `;
-        
-        content.innerHTML = html;
-        
-    } catch (error) {
-        content.innerHTML = `
-            <div style="text-align: center; padding: 30px;">
-                <h3 style="color:#ff7eb3;">Error Loading Data</h3>
-                <p style="color:#ff6b6b; margin: 15px 0;">${error.message}</p>
-                <p style="color: rgba(255,255,255,0.7);">Please check your internet connection and try again.</p>
-                <button onclick="showGlobalUserList()" class="eye-catchy-btn" style="margin-top: 20px;">
-                    <i class="fas fa-redo"></i> Retry
-                </button>
-            </div>`;
-    }
-}
-
-// Update the existing showUserList function
-const originalShowUserList = showUserList;
-showUserList = showGlobalUserList;
-
-// Update the existing register function
-const originalRegister = register;
-register = registerWithGoogleSheets;
-
-// Update the existing updateCounts function
-updateCounts = updateGlobalUserCount;
-
-// Fetch global users when page loads
-document.addEventListener('DOMContentLoaded', function() {
-    // Fetch global users after a short delay
-    setTimeout(() => {
-        fetchUsersFromGoogleSheets();
-    }, 1000);
-    
-    // Also fetch periodically (every 30 seconds)
-    setInterval(fetchUsersFromGoogleSheets, 30000);
 });
