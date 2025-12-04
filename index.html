@@ -14,9 +14,10 @@
 </head>
 
 <body>
+    <!-- Auth Container -->
     <div id="auth-container" class="login-box">
         <!-- Login Form -->
-        <div id="login-form" class="hidden">
+        <div id="login-form">
             <h2>User Login</h2>
             <div class="form-group">
                 <input type="text" id="login-username" placeholder="Username (Your ID)" required>
@@ -26,7 +27,6 @@
             </div>
             <button onclick="login()" class="eye-catchy-btn">Login</button>
             
-            <!-- Forgot Password Link -->
             <p class="forgot-link" onclick="showForgotPassword()">
                 <i class="fas fa-key"></i> Forgot ID or Password?
             </p>
@@ -100,7 +100,6 @@
             </p>
             
             <div class="recovery-form">
-                <!-- Option 1: Find ID -->
                 <div class="recovery-option" onclick="recoverUserId()">
                     <h4><i class="fas fa-search"></i> Find My ID</h4>
                     <p style="color: rgba(255,255,255,0.7); font-size: 14px;">
@@ -108,7 +107,6 @@
                     </p>
                 </div>
                 
-                <!-- Option 2: Reset Password -->
                 <div class="recovery-option" onclick="resetPassword()">
                     <h4><i class="fas fa-redo"></i> Reset Password</h4>
                     <p style="color: rgba(255,255,255,0.7); font-size: 14px;">
@@ -125,6 +123,7 @@
         <div id="error-message" class="error-message hidden"></div>
     </div>
 
+    <!-- Main Container -->
     <div id="main-container" class="hidden container">
         <!-- Theme Toggle Button -->
         <div class="theme-toggle-container">
@@ -211,9 +210,6 @@
     <div id="nebulaLight"></div>
     <div id="clock"></div>
 
-    <!-- Audio Elements -->
-    <audio id="welcome-chime" src="https://assets.mixkit.co/sfx/preview/mixkit-correct-answer-tone-2870.mp3"></audio>
-
     <!-- Popup -->
     <div id="popup" class="popup hidden">
         <h3>Success!</h3>
@@ -221,7 +217,7 @@
     </div>
 
     <!-- User Details Modal -->
-    <div id="user-details-modal" class="user-details-modal">
+    <div id="user-details-modal" class="user-details-modal hidden">
         <div class="user-details-content">
             <div class="user-details-header">
                 <h3><i class="fas fa-user-circle"></i> User Details</h3>
@@ -284,8 +280,11 @@
                     <button onclick="exportUserData()" class="eye-catchy-btn">
                         <i class="fas fa-download"></i> Export All Data
                     </button>
-                    <button onclick="refreshStats()" class="eye-catchy-btn">
-                        <i class="fas fa-sync-alt"></i> Refresh Stats
+                    <button onclick="syncAllData()" class="eye-catchy-btn">
+                        <i class="fas fa-sync-alt"></i> SYNC ALL DATA
+                    </button>
+                    <button onclick="resetTodayCount()" class="eye-catchy-btn" style="background: linear-gradient(45deg, #ff416c, #ff4b2b);">
+                        <i class="fas fa-redo"></i> RESET TODAY'S COUNT
                     </button>
                 </div>
             </div>
@@ -313,33 +312,27 @@
                         
                         <!-- All Social Icons -->
                         <div class="social-icons">
-                            <!-- WhatsApp -->
                             <a href="https://wa.me/8801782449070" target="_blank" class="social-icon whatsapp-icon" title="Chat on WhatsApp">
                                 <i class="fab fa-whatsapp"></i>
                             </a>
                             
-                            <!-- Email -->
                             <a href="mailto:deboneel1998@gmail.com,partho.2105056@bau.edu.bd?subject=Contact%20from%20EduHub" target="_blank" class="social-icon email-icon" title="Send Email">
                                 <i class="fas fa-envelope"></i>
                             </a>
                             
-                            <!-- Instagram -->
                             <a href="https://www.instagram.com/deboneel_partho?igsh=MWdjMHZrMnZhMTVpeQ==" target="_blank" class="social-icon instagram-icon" title="Follow on Instagram">
                                 <i class="fab fa-instagram"></i>
                             </a>
                             
-                            <!-- LinkedIn -->
                             <a href="https://www.linkedin.com/in/deboneelpartho?utm_source=share&utm_campaign=share_via&utm_content=profile&utm_medium=android_app" target="_blank" class="social-icon linkedin-icon" title="Connect on LinkedIn">
                                 <i class="fab fa-linkedin-in"></i>
                             </a>
                             
-                            <!-- Facebook -->
                             <a href="https://www.facebook.com/share/16ZLuXf22D/" target="_blank" class="social-icon facebook-icon" title="Visit Facebook">
                                 <i class="fab fa-facebook-f"></i>
                             </a>
                         </div>
                         
-                        <!-- Response Note -->
                         <div class="response-note">
                             <p><i class="fas fa-clock"></i> Usually responds within 24 hours</p>
                         </div>
@@ -349,7 +342,7 @@
         </div>
     </div>
 
-    <!-- JavaScript Files -->
+    <!-- JavaScript File -->
     <script src="script.js"></script>
 </body>
 </html>

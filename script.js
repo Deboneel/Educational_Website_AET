@@ -3,23 +3,24 @@ const ADMIN_ID = "2105056";
 const ADMIN_PASSWORD = "sotorupa72";
 
 // ==================== GLOBAL VARIABLES ====================
-let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers')) || {};
+let registeredUsers = {};
 let currentUserRole = 'user';
 let currentUserNickname = '';
 let isDayMode = false;
 let db = null;
-let userChart = null;
 let deptChart = null;
+let regChart = null;
 
-// User statistics
+// Global user statistics
 let userStats = {
     totalUsers: 0,
     activeUsers: 0,
     todayUsers: 0,
-    departments: {}
+    departments: {},
+    registrationHistory: {}
 };
 
-// Educational Courses Data with Google Drive Links
+// Educational Courses Data
 const courses = {
     'Level 1 Semester 1': {
         driveId: '1KnVbNU1DQbT5iZabjggqdH3WbU5gGfjF',
@@ -113,18 +114,6 @@ const articles = [
         content: "Understanding how climate change affects agriculture and adaptive strategies for farmers...",
         category: "Environment",
         readTime: "8 min"
-    },
-    {
-        title: "Digital Tools for Modern Farming",
-        content: "A comprehensive guide to digital tools and apps that are revolutionizing farming practices...",
-        category: "Technology",
-        readTime: "4 min"
-    },
-    {
-        title: "Soil Conservation Methods",
-        content: "Essential techniques for maintaining soil health and preventing erosion in agricultural lands...",
-        category: "Environment",
-        readTime: "6 min"
     }
 ];
 
@@ -139,16 +128,6 @@ const musicPlaylist = [
         name: "Classical Concentration",
         url: "https://www.youtube.com/watch?v=5qap5aO4i9A",
         type: "classical"
-    },
-    {
-        name: "Nature Sounds for Study",
-        url: "https://www.youtube.com/watch?v=2p3jYy67z10",
-        type: "nature"
-    },
-    {
-        name: "Bengali Instrumental",
-        url: "https://www.youtube.com/watch?v=K-Qd29V-4Wk",
-        type: "instrumental"
     }
 ];
 
@@ -156,51 +135,67 @@ const musicPlaylist = [
 const agQuotes = [
     { text: "যে মাটিকে ভালোবাসে, প্রকৃতি তাকে কখনই হতাশ করে না।", author: "Unknown" },
     { text: "কৃষকরাই জাতির মেরুদণ্ড – তাদের জ্ঞানই আমাদের ভবিষ্যৎ।", author: "Dr. A. P. J. Abdul Kalam" },
-    { text: "ফলন শুধু মাটিতে নয়, কৃষকের মনেও হয়।", author: "Bangladeshi Proverb" },
-    { text: "প্রযুক্তি এবং কৃষি—এই দুটির সমন্বয়েই আগামী দিনের সমৃদ্ধি।", author: "Innovator's Creed" },
-    { text: "মাটি আমাদের প্রথম শিক্ষক, কৃষি আমাদের চিরন্তন জীবনধারা।", author: "Agricultural Philosopher" },
-    { text: "জলের এক ফোঁটাও যেন বৃথা না যায় - সেচ প্রকৌশলের মূলমন্ত্র", author: "Water Management Expert" }
+    { text: "ফলন শুধু মাটিতে নয়, কৃষকের মনেও হয়।", author: "Bangladeshi Proverb" }
 ];
 
 // ==================== INITIALIZATION ====================
-window.onload = function () {
+document.addEventListener('DOMContentLoaded', async function() {
     // Initialize Firebase
     initializeFirebase();
     
-    // Initialize admin user
-    initializeAdminUser();
+    // Load users from localStorage first for faster startup
+    registeredUsers = JSON.parse(localStorage.getItem('registeredUsers')) || {};
     
+    // Initialize admin user if not exists
+    await initializeAdminUser();
+    
+    // Load users from Firebase in background
+    setTimeout(() => {
+        loadAllUsersFromFirebase();
+    }, 1000);
+    
+    // Initialize UI
     updateClock();
     displayRandomQuote();
     setupEventListeners();
     
+    // Initialize registration history
+    initRegistrationHistory();
+    
+    // Check if user is already logged in
     const storedUser = localStorage.getItem('currentUser');
     if (storedUser) {
         const user = JSON.parse(storedUser);
-        if (user.username === ADMIN_ID && user.password === ADMIN_PASSWORD) {
+        if (user.username === ADMIN_ID) {
             currentUserRole = 'admin';
+            currentUserNickname = "Admin";
         } else {
             currentUserRole = 'user';
+            currentUserNickname = user.nickname || user.username;
+            
+            // Update user activity
+            if (user.username !== ADMIN_ID) {
+                await updateUserLoginActivity(user.username);
+            }
         }
-        currentUserNickname = user.nickname || user.username;
         
         document.getElementById("auth-container").classList.add("hidden");
         document.getElementById("main-container").classList.remove("hidden");
         setupTypingAnimation();
         updateAdminView();
-        updateUserStats();
+        updateUserStatsDisplay();
         
-        // Initialize theme
+        // Set theme
         const savedTheme = localStorage.getItem('theme') || 'night';
         setTheme(savedTheme === 'day');
-    } else {
-        toggleAuthForm('register');
-        setTheme(true);
     }
     
-    // Update stats every 30 seconds
-    setInterval(updateUserStats, 30000);
-};
+    // Update stats periodically
+    setInterval(updateUserStatsDisplay, 60000);
+    
+    // Update clock every second
+    setInterval(updateClock, 1000);
+});
 
 // ==================== FIREBASE INITIALIZATION ====================
 function initializeFirebase() {
@@ -226,7 +221,95 @@ function initializeFirebase() {
     }
 }
 
-// ==================== EVENT LISTENERS SETUP ====================
+// ==================== LOAD ALL USERS ====================
+async function loadAllUsersFromFirebase() {
+    try {
+        if (!db) return;
+        
+        const usersRef = db.collection('users');
+        const snapshot = await usersRef.get();
+        
+        registeredUsers = {};
+        snapshot.forEach(doc => {
+            registeredUsers[doc.id] = doc.data();
+        });
+        
+        // Save to localStorage
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+        
+        console.log("✅ Loaded users from Firebase:", Object.keys(registeredUsers).length);
+        
+        // Update statistics after loading
+        updateUserStatsDisplay();
+        
+    } catch (error) {
+        console.error("❌ Error loading users:", error);
+    }
+}
+
+// ==================== INITIALIZE ADMIN USER ====================
+async function initializeAdminUser() {
+    if (!registeredUsers[ADMIN_ID]) {
+        registeredUsers[ADMIN_ID] = {
+            id: ADMIN_ID,
+            fullName: "Admin User",
+            nickname: "Admin",
+            regNo: "ADMIN001",
+            college: "System Administration",
+            department: "ADMIN",
+            email: "admin@eduhub.com",
+            password: ADMIN_PASSWORD,
+            registrationDate: new Date().toISOString(),
+            role: "admin",
+            isAdmin: true,
+            isActive: false,
+            lastLogin: null,
+            loginCount: 0
+        };
+        
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+        
+        if (db) {
+            try {
+                await db.collection('users').doc(ADMIN_ID).set(registeredUsers[ADMIN_ID]);
+                console.log("✅ Admin user saved to Firebase");
+            } catch (error) {
+                console.error("❌ Error saving admin to Firebase:", error);
+            }
+        }
+    }
+}
+
+// ==================== REGISTRATION HISTORY ====================
+function initRegistrationHistory() {
+    const today = new Date();
+    const dates = [];
+    
+    // Initialize last 7 days
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        dates.push(dateStr);
+        if (!userStats.registrationHistory[dateStr]) {
+            userStats.registrationHistory[dateStr] = 0;
+        }
+    }
+    
+    // Count registrations for each date
+    Object.values(registeredUsers).forEach(user => {
+        if (!user.isAdmin && user.registrationDate) {
+            const regDate = new Date(user.registrationDate).toISOString().split('T')[0];
+            if (userStats.registrationHistory[regDate] !== undefined) {
+                userStats.registrationHistory[regDate]++;
+            }
+        }
+    });
+    
+    return dates;
+}
+
+// ==================== EVENT LISTENERS ====================
 function setupEventListeners() {
     // Theme toggle
     const themeBtn = document.getElementById('theme-toggle-btn');
@@ -258,6 +341,19 @@ function setupEventListeners() {
     
     // Mouse trail effect
     document.addEventListener('mousemove', createMouseTrail);
+    
+    // Close modals on outside click
+    document.addEventListener('click', function(event) {
+        const userModal = document.getElementById('user-details-modal');
+        if (userModal && !userModal.contains(event.target) && !userModal.classList.contains('hidden')) {
+            closeUserDetails();
+        }
+        
+        const adminModal = document.getElementById('admin-panel-modal');
+        if (adminModal && !adminModal.contains(event.target) && !adminModal.classList.contains('hidden')) {
+            closeAdminPanel();
+        }
+    });
 }
 
 // ==================== THEME MANAGEMENT ====================
@@ -272,134 +368,15 @@ function setTheme(dayMode) {
     const themeBtn = document.getElementById('theme-toggle-btn');
     if (!themeBtn) return;
     
-    const icon = themeBtn.querySelector('i');
-    
     if (dayMode) {
         body.classList.add('day-mode');
-        body.classList.remove('night-mode');
         themeBtn.innerHTML = '<i class="fas fa-moon"></i> Switch to Night Mode';
-        if (icon) icon.className = 'fas fa-moon';
     } else {
-        body.classList.add('night-mode');
         body.classList.remove('day-mode');
         themeBtn.innerHTML = '<i class="fas fa-sun"></i> Switch to Day Mode';
-        if (icon) icon.className = 'fas fa-sun';
     }
     
     localStorage.setItem('theme', dayMode ? 'day' : 'night');
-}
-
-// ==================== USER STATISTICS ====================
-function updateUserStats() {
-    // Update counts
-    userStats.totalUsers = Object.keys(registeredUsers).length;
-    
-    // Calculate department distribution
-    userStats.departments = {};
-    Object.values(registeredUsers).forEach(user => {
-        if (user.department) {
-            userStats.departments[user.department] = (userStats.departments[user.department] || 0) + 1;
-        }
-    });
-    
-    // Update display
-    document.getElementById('total-user-count').textContent = userStats.totalUsers;
-    document.getElementById('active-user-count').textContent = userStats.activeUsers;
-    document.getElementById('today-user-count').textContent = userStats.todayUsers;
-    
-    // Update admin panel if open
-    if (currentUserRole === 'admin') {
-        document.getElementById('admin-total-count').textContent = userStats.totalUsers;
-        document.getElementById('admin-active-count').textContent = userStats.activeUsers;
-        document.getElementById('admin-today-count').textContent = userStats.todayUsers;
-        document.getElementById('admin-dept-count').textContent = Object.keys(userStats.departments).length;
-        
-        updateDepartmentChart();
-    }
-}
-
-function updateDepartmentChart() {
-    const ctx = document.getElementById('dept-distribution-chart');
-    if (!ctx) return;
-    
-    // Destroy existing chart
-    if (deptChart) {
-        deptChart.destroy();
-    }
-    
-    const departments = Object.keys(userStats.departments);
-    const counts = Object.values(userStats.departments);
-    
-    deptChart = new Chart(ctx.getContext('2d'), {
-        type: 'pie',
-        data: {
-            labels: departments,
-            datasets: [{
-                data: counts,
-                backgroundColor: [
-                    '#ff7eb3',
-                    '#00ffc8',
-                    '#667eea',
-                    '#ffd700',
-                    '#9b59b6',
-                    '#e74c3c',
-                    '#3498db',
-                    '#27ae60'
-                ],
-                borderColor: 'rgba(255, 255, 255, 0.2)',
-                borderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'right',
-                    labels: {
-                        color: '#fff',
-                        font: {
-                            size: 12
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    titleColor: '#ff7eb3',
-                    bodyColor: '#fff',
-                    borderColor: '#ff7eb3',
-                    borderWidth: 1
-                }
-            }
-        }
-    });
-}
-
-// ==================== USER MANAGEMENT ====================
-function initializeAdminUser() {
-    if (!registeredUsers[ADMIN_ID]) {
-        registeredUsers[ADMIN_ID] = {
-            id: ADMIN_ID,
-            fullName: "Admin User",
-            nickname: "Admin",
-            regNo: "ADMIN001",
-            college: "System Administration",
-            department: "ADMIN",
-            email: "admin@eduhub.com",
-            password: ADMIN_PASSWORD,
-            registrationDate: new Date().toISOString(),
-            role: "admin"
-        };
-        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-    }
-}
-
-function updateAdminView() {
-    const adminOnlyButtons = document.querySelectorAll('.admin-only');
-    adminOnlyButtons.forEach(btn => {
-        btn.style.display = currentUserRole === 'admin' ? 'inline-block' : 'none';
-    });
-    updateUserStats();
 }
 
 // ==================== FORM TOGGLE ====================
@@ -419,71 +396,30 @@ function toggleAuthForm(formType) {
     } else if (formType === 'register') {
         if (registerForm) registerForm.classList.remove('hidden');
         setTheme(true);
+    } else if (formType === 'forgot') {
+        if (forgotForm) forgotForm.classList.remove('hidden');
     }
 }
 
 // ==================== FORGOT PASSWORD ====================
 function showForgotPassword() {
-    document.getElementById('login-form').classList.add('hidden');
-    document.getElementById('forgot-form').classList.remove('hidden');
+    toggleAuthForm('forgot');
 }
 
 function backToLogin() {
-    document.getElementById('forgot-form').classList.add('hidden');
-    document.getElementById('login-form').classList.remove('hidden');
+    toggleAuthForm('login');
 }
 
 function recoverUserId() {
-    const email = prompt("Enter your registered email address:");
-    if (!email) return;
-    
-    // Find user by email
-    const user = Object.values(registeredUsers).find(u => u.email === email);
-    if (user) {
-        alert(`Your User ID is: ${user.id}\n\nPlease remember this ID for future logins.`);
-    } else {
-        alert("No account found with that email address.\n\nPlease check your email or contact administrator.");
-    }
-    
-    backToLogin();
+    alert("Please contact the administrator at deboneel1998@gmail.com to recover your ID.");
 }
 
 function resetPassword() {
-    const userId = prompt("Enter your 7-digit ID:");
-    if (!userId || userId.length !== 7) {
-        alert("Please enter a valid 7-digit ID.");
-        return;
-    }
-    
-    const user = registeredUsers[userId];
-    if (!user) {
-        alert("No account found with that ID.");
-        backToLogin();
-        return;
-    }
-    
-    const email = prompt("Enter your registered email address:");
-    if (!email) return;
-    
-    if (user.email === email) {
-        const newPassword = prompt("Enter your new password (min 6 characters):");
-        if (newPassword && newPassword.length >= 6) {
-            user.password = newPassword;
-            registeredUsers[userId] = user;
-            localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-            alert("✅ Password reset successful!\n\nYou can now login with your new password.");
-        } else {
-            alert("Password must be at least 6 characters long.");
-        }
-    } else {
-        alert("Email does not match our records.\n\nPlease enter the correct email address.");
-    }
-    
-    backToLogin();
+    alert("Please contact the administrator at deboneel1998@gmail.com to reset your password.");
 }
 
 // ==================== REGISTRATION ====================
-function register() {
+async function register() {
     const id = document.getElementById("reg-id")?.value.trim();
     const fullName = document.getElementById("reg-fullname")?.value.trim();
     const nickname = document.getElementById("reg-nickname")?.value.trim();
@@ -520,6 +456,8 @@ function register() {
         return;
     }
 
+    const finalDept = department === 'Others' ? (otherDepartment || 'Others') : department;
+    
     // Save user locally
     registeredUsers[id] = {
         id,
@@ -527,7 +465,7 @@ function register() {
         nickname,
         regNo,
         college,
-        department: department === 'Others' ? otherDepartment : department,
+        department: finalDept,
         email,
         password,
         hometown,
@@ -537,17 +475,32 @@ function register() {
         registrationDate: new Date().toISOString(),
         lastLogin: new Date().toISOString(),
         loginCount: 1,
-        role: "user"
+        role: "user",
+        isAdmin: false,
+        isActive: true
     };
 
     localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
     localStorage.setItem('currentUser', JSON.stringify({ 
         username: id, 
-        password,
+        password: "hidden",
         nickname,
-        department: department === 'Others' ? otherDepartment : department
+        department: finalDept
     }));
 
+    // Save to Firebase
+    await syncUserToFirebase(id);
+    
+    // Update today's count in statistics
+    const today = new Date().toISOString().split('T')[0];
+    userStats.todayUsers = userStats.todayUsers + 1;
+    
+    // Update registration history
+    if (!userStats.registrationHistory[today]) {
+        userStats.registrationHistory[today] = 0;
+    }
+    userStats.registrationHistory[today]++;
+    
     // Success
     currentUserRole = 'user';
     currentUserNickname = nickname;
@@ -555,15 +508,14 @@ function register() {
     document.getElementById("main-container").classList.remove("hidden");
     setupTypingAnimation();
     fireConfetti();
-    playWelcomeSound();
     showPopup("Registration Successful! Welcome to EduHub.");
     updateAdminView();
-    updateUserStats();
+    updateUserStatsDisplay();
     setTheme(false);
 }
 
 // ==================== LOGIN ====================
-function login() {
+async function login() {
     const username = document.getElementById("login-username")?.value.trim();
     const password = document.getElementById("login-password")?.value.trim();
 
@@ -572,7 +524,7 @@ function login() {
     if ((username === ADMIN_ID && password === ADMIN_PASSWORD)) {
         currentUserRole = 'admin';
         currentUserNickname = "Admin";
-        loginSuccess(username, "Admin");
+        await loginSuccess(username, "Admin");
     } else if (user && user.password === password) {
         currentUserRole = 'user';
         currentUserNickname = user.nickname || user.fullName;
@@ -580,16 +532,20 @@ function login() {
         // Update user login stats
         user.lastLogin = new Date().toISOString();
         user.loginCount = (user.loginCount || 0) + 1;
+        user.isActive = true;
         registeredUsers[username] = user;
         localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
         
-        loginSuccess(username, user.nickname || user.fullName);
+        // Update in Firebase
+        await syncUserToFirebase(username);
+        
+        await loginSuccess(username, user.nickname || user.fullName);
     } else {
         showError("Invalid ID or Password!");
     }
 }
 
-function loginSuccess(username, nickname) {
+async function loginSuccess(username, nickname) {
     localStorage.setItem('currentUser', JSON.stringify({ 
         username, 
         password: "hidden",
@@ -599,21 +555,20 @@ function loginSuccess(username, nickname) {
     document.getElementById("main-container").classList.remove("hidden");
     setupTypingAnimation();
     fireConfetti();
-    playWelcomeSound();
     showPopup(`Welcome back, ${nickname}!`);
     updateAdminView();
-    updateUserStats();
+    updateUserStatsDisplay();
     setTheme(false);
-    
-    // Track active user
-    userStats.activeUsers++;
-    updateUserStats();
 }
 
 // ==================== LOGOUT ====================
-function logout() {
-    userStats.activeUsers = Math.max(0, userStats.activeUsers - 1);
-    updateUserStats();
+async function logout() {
+    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
+    
+    // Update user activity status
+    if (currentUser.username && currentUser.username !== ADMIN_ID) {
+        await updateUserLogoutActivity(currentUser.username);
+    }
     
     localStorage.removeItem('currentUser');
     currentUserRole = 'user';
@@ -624,640 +579,1083 @@ function logout() {
     updateAdminView();
 }
 
-// ==================== CONTENT DISPLAY ====================
-function showContent(type) {
-    const content = document.getElementById("content");
+// ==================== USER ACTIVITY ====================
+async function updateUserLoginActivity(userId) {
+    try {
+        const user = registeredUsers[userId];
+        if (!user) return;
+        
+        user.lastLogin = new Date().toISOString();
+        user.isActive = true;
+        user.loginCount = (user.loginCount || 0) + 1;
+        
+        registeredUsers[userId] = user;
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+        
+        await syncUserToFirebase(userId);
+        
+    } catch (error) {
+        console.error("❌ Error updating user login activity:", error);
+    }
+}
+
+async function updateUserLogoutActivity(userId) {
+    try {
+        const user = registeredUsers[userId];
+        if (!user || user.isAdmin) return;
+        
+        user.isActive = false;
+        
+        registeredUsers[userId] = user;
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+        
+        await syncUserToFirebase(userId);
+        
+    } catch (error) {
+        console.error("❌ Error updating user logout activity:", error);
+    }
+}
+
+async function syncUserToFirebase(userId = null) {
+    try {
+        if (!db) return;
+        
+        if (userId && registeredUsers[userId]) {
+            await db.collection('users').doc(userId).set(registeredUsers[userId]);
+        } else {
+            for (const [id, userData] of Object.entries(registeredUsers)) {
+                await db.collection('users').doc(id).set(userData);
+            }
+        }
+        
+        console.log("✅ User data synced to Firebase");
+        
+    } catch (error) {
+        console.error("❌ Error syncing user to Firebase:", error);
+    }
+}
+
+// ==================== UPDATE USER STATS DISPLAY ====================
+function updateUserStatsDisplay() {
+    // Calculate statistics
+    const users = Object.values(registeredUsers).filter(u => !u.isAdmin);
+    const activeUsers = users.filter(u => u.isActive).length;
+    const today = new Date().toISOString().split('T')[0];
+    
+    // Count users registered today
+    const todayUsers = users.filter(user => {
+        if (!user.registrationDate) return false;
+        const regDate = new Date(user.registrationDate).toISOString().split('T')[0];
+        return regDate === today;
+    }).length;
+    
+    // Calculate department distribution
+    const departments = {};
+    users.forEach(user => {
+        if (user.department) {
+            const dept = user.department.toUpperCase();
+            departments[dept] = (departments[dept] || 0) + 1;
+        }
+    });
+    
+    // Update global stats
+    userStats.totalUsers = users.length;
+    userStats.activeUsers = activeUsers;
+    userStats.todayUsers = todayUsers;
+    userStats.departments = departments;
+    
+    // Update main display
+    document.getElementById('total-user-count').textContent = userStats.totalUsers;
+    document.getElementById('active-user-count').textContent = userStats.activeUsers;
+    document.getElementById('today-user-count').textContent = userStats.todayUsers;
+    
+    // Update admin panel if open
+    document.getElementById('admin-total-count').textContent = userStats.totalUsers;
+    document.getElementById('admin-active-count').textContent = userStats.activeUsers;
+    document.getElementById('admin-today-count').textContent = userStats.todayUsers;
+    document.getElementById('admin-dept-count').textContent = Object.keys(userStats.departments).length;
+    
+    // If enhanced stats is visible, update those too
+    const statTotal = document.getElementById('stat-total-users');
+    const statActive = document.getElementById('stat-active-users');
+    const statToday = document.getElementById('stat-today-users');
+    const statDepts = document.getElementById('stat-departments');
+    
+    if (statTotal) statTotal.textContent = userStats.totalUsers;
+    if (statActive) statActive.textContent = userStats.activeUsers;
+    if (statToday) statToday.textContent = userStats.todayUsers;
+    if (statDepts) statDepts.textContent = Object.keys(userStats.departments).length;
+    
+    // Update charts if they exist
+    if (document.getElementById('dept-distribution-chart')) {
+        updateDepartmentChart();
+    }
+    if (document.getElementById('registration-chart')) {
+        updateRegistrationChart();
+    }
+}
+
+// ==================== ADMIN VIEW ====================
+function updateAdminView() {
+    const adminOnlyButtons = document.querySelectorAll('.admin-only');
+    adminOnlyButtons.forEach(btn => {
+        btn.style.display = currentUserRole === 'admin' ? 'inline-block' : 'none';
+    });
+    updateUserStatsDisplay();
+}
+
+// ==================== SHOW CONTENT ====================
+function showContent(section) {
+    const content = document.getElementById('content');
     if (!content) return;
     
-    switch(type) {
+    switch(section) {
         case 'courses':
-            displayCourses();
+            showCourses();
             break;
         case 'articles':
-            displayArticles();
+            showArticles();
             break;
         case 'diary':
-            displayDiary();
+            showDiary();
             break;
         case 'music':
-            displayMusicPlayer();
+            showMusicPlayer();
             break;
         case 'movies':
-            displayMovies();
+            showMovies();
             break;
         default:
             content.innerHTML = `
                 <div class="welcome-section">
-                    <h2>Welcome to EduHub, ${currentUserNickname}!</h2>
-                    <p>Select a section from the navigation menu to get started with your educational journey.</p>
+                    <h2>Welcome to EduHub!</h2>
+                    <p>Select a section from the navigation menu to get started.</p>
                 </div>`;
     }
 }
 
-function displayCourses() {
-    const content = document.getElementById("content");
+// ==================== COURSES SECTION ====================
+function showCourses() {
+    const content = document.getElementById('content');
     if (!content) return;
     
-    const userDepartment = getUserDepartment();
-    
     let html = `
-        <h2 style="color:#ff7eb3; margin-bottom: 20px;">
-            <i class="fas fa-graduation-cap"></i> Course Selection
-        </h2>
-        <p style="margin-bottom: 30px; color: rgba(255,255,255,0.8);">
-            Access course materials for each semester. Click on a semester to open Google Drive materials.
-        </p>`;
+        <div class="courses-section">
+            <h2 style="color:#ff7eb3; margin-bottom: 20px;">
+                <i class="fas fa-graduation-cap"></i> Available Courses
+            </h2>
+            <p style="color: rgba(255,255,255,0.8); margin-bottom: 30px;">
+                Browse through all available courses. Click on any course to access study materials.
+            </p>
+            
+            <div class="course-container">`;
     
-    if (userDepartment) {
+    Object.entries(courses).forEach(([semester, data]) => {
         html += `
-            <div style="background: rgba(255,126,179,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px; border-left: 4px solid #ff7eb3;">
-                <h4 style="color:#ffd700; margin-bottom: 5px;">Your Department: ${userDepartment}</h4>
-                <p style="color: rgba(255,255,255,0.8); font-size: 14px;">Credits are displayed based on your department</p>
-            </div>`;
-    }
-    
-    html += `<div class="course-container">`;
-    
-    for (const [semester, data] of Object.entries(courses)) {
-        html += `
-            <div class="course-card" onclick="openDrive('${data.driveId}', '${semester}')">
+            <div class="course-card" onclick="openCourse('${semester}')">
                 <h3>${semester}</h3>
-                <div style="margin: 15px 0; text-align: left;">`;
-        
-        // Display common credits for all semesters
-        html += `
-                    <div style="margin-bottom: 10px;">
-                        <strong>Common Courses:</strong><br>
-                        <span style="color: #00ffc8;">${data.commonCredits} Credits</span> 
-                        <span style="color: rgba(255,255,255,0.6);">(${data.commonHours} Contact Hours)</span>
-                    </div>`;
-        
-        // Display departmental credits for Level 3 and 4 semesters
-        if (data.departmentalCredits) {
-            if (userDepartment && data.departmentalCredits[userDepartment]) {
-                const deptCredits = data.departmentalCredits[userDepartment];
-                const totalCredits = data.commonCredits + deptCredits;
-                
-                html += `
-                    <div style="margin-bottom: 10px;">
-                        <strong>${userDepartment} Departmental:</strong><br>
-                        <span style="color: #ff7eb3;">+${deptCredits} Credits</span>
-                    </div>
-                    <div style="background: rgba(0,198,255,0.1); padding: 8px; border-radius: 5px; margin-top: 5px;">
-                        <strong>Total for ${userDepartment}:</strong> 
-                        <span style="color: #ffd700; font-size: 1.1em;">${totalCredits} Credits</span>
-                    </div>`;
-            } else {
-                // Show all department options if user department not found
-                html += `<div><strong>Departmental Credits:</strong>`;
-                for (const [dept, deptCredits] of Object.entries(data.departmentalCredits)) {
-                    const total = data.commonCredits + deptCredits;
-                    html += `<br><span style="color: rgba(255,255,255,0.7);">${dept}: ${total} Credits</span>`;
-                }
-                html += `</div>`;
-            }
-        }
-        
-        // Display internship for Level 4 Semester 2
-        if (data.internship) {
-            html += `
-                <div style="margin-top: 10px; padding: 5px; background: rgba(39,174,96,0.2); border-radius: 5px;">
-                    <strong>Internship:</strong> 
-                    <span style="color: #27ae60;">${data.internship} Credits</span>
-                </div>`;
-        }
-        
-        html += `
+                <div style="margin-top: 10px;">
+                    <p style="color: rgba(255,255,255,0.8); font-size: 14px;">
+                        <i class="fas fa-book"></i> Common Credits: ${data.commonCredits}
+                    </p>
+                    <p style="color: rgba(255,255,255,0.8); font-size: 14px;">
+                        <i class="fas fa-clock"></i> Common Hours: ${data.commonHours}
+                    </p>
+                    ${data.departmentalCredits ? 
+                        `<p style="color: #ffd700; font-size: 14px; margin-top: 5px;">
+                            <i class="fas fa-university"></i> Departmental Credits Available
+                        </p>` : ''}
                 </div>
-                <button class="eye-catchy-btn small-btn" style="margin-top: 10px;">
-                    <i class="fas fa-external-link-alt"></i> Open Materials
-                </button>
             </div>`;
-    }
+    });
     
-    html += `</div>`;
+    html += `
+            </div>
+        </div>`;
+    
     content.innerHTML = html;
 }
 
-function openDrive(folderId, semesterName) {
-    window.open(`https://drive.google.com/drive/folders/${folderId}`, '_blank');
-    showPopup(`Opening ${semesterName} materials in Google Drive...`);
+function openCourse(semester) {
+    const courseData = courses[semester];
+    if (courseData && courseData.driveId) {
+        window.open(`https://drive.google.com/drive/folders/${courseData.driveId}`, '_blank');
+    } else {
+        alert(`No materials available for ${semester} yet.`);
+    }
 }
 
-// Get current user's department from localStorage
-function getUserDepartment() {
-    const currentUser = JSON.parse(localStorage.getItem('currentUser') || '{}');
-    const userData = registeredUsers[currentUser.username];
-    return userData ? userData.department : null;
-}
-
-function displayArticles() {
-    const content = document.getElementById("content");
+// ==================== ARTICLES SECTION ====================
+function showArticles() {
+    const content = document.getElementById('content');
     if (!content) return;
     
     let html = `
-        <h2 style="color:#ff7eb3; margin-bottom: 20px;">
-            <i class="fas fa-newspaper"></i> Educational Articles
-        </h2>
-        <p style="margin-bottom: 30px; color: rgba(255,255,255,0.8);">
-            Read educational articles on various topics related to agricultural engineering and technology.
-        </p>
-        <div class="articles-grid">`;
+        <div class="articles-section">
+            <h2 style="color:#ff7eb3; margin-bottom: 20px;">
+                <i class="fas fa-newspaper"></i> Educational Articles
+            </h2>
+            <p style="color: rgba(255,255,255,0.8); margin-bottom: 30px;">
+                Read informative articles about agricultural engineering and related topics.
+            </p>
+            
+            <div class="articles-grid">`;
     
     articles.forEach(article => {
         html += `
             <div class="article-card">
-                <span class="article-category" style="background: ${getCategoryColor(article.category)}; 
-                    padding: 3px 8px; border-radius: 4px; font-size: 12px; margin-bottom: 10px; display: inline-block;">
-                    ${article.category}
-                </span>
                 <h3>${article.title}</h3>
-                <p>${article.content}</p>
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 15px;">
-                    <span style="color: #ff7eb3; font-size: 14px;">
-                        <i class="far fa-clock"></i> ${article.readTime} read
+                <div style="margin: 10px 0;">
+                    <span class="dept-badge dept-csm" style="font-size: 12px;">${article.category}</span>
+                    <span style="color: rgba(255,255,255,0.6); font-size: 12px; margin-left: 10px;">
+                        <i class="fas fa-clock"></i> ${article.readTime}
                     </span>
-                    <button onclick="readArticle('${article.title}')" class="eye-catchy-btn small-btn">
-                        Read More <i class="fas fa-book-open"></i>
-                    </button>
                 </div>
+                <p>${article.content}</p>
+                <button class="eye-catchy-btn small-btn" onclick="readArticle('${article.title}')">
+                    <i class="fas fa-book-reader"></i> Read Full Article
+                </button>
             </div>`;
     });
     
-    html += `</div>`;
+    html += `
+            </div>
+        </div>`;
+    
     content.innerHTML = html;
 }
 
-function getCategoryColor(category) {
-    const colors = {
-        'Technology': '#3498db',
-        'Environment': '#27ae60',
-        'Career': '#9b59b6',
-        'Research': '#e74c3c'
-    };
-    return colors[category] || '#95a5a6';
-}
-
 function readArticle(title) {
-    const article = articles.find(a => a.title === title);
-    if (article) {
-        const content = document.getElementById("content");
-        if (!content) return;
-        
-        content.innerHTML = `
-            <div style="text-align: left; max-width: 800px; margin: 0 auto;">
-                <button onclick="displayArticles()" class="eye-catchy-btn small-btn" style="margin-bottom: 20px;">
-                    <i class="fas fa-arrow-left"></i> Back to Articles
-                </button>
-                <h1 style="color:#ff7eb3; margin-bottom: 20px;">${article.title}</h1>
-                <div style="display: flex; gap: 20px; margin-bottom: 20px; color: rgba(255,255,255,0.7);">
-                    <span><i class="fas fa-tag"></i> ${article.category}</span>
-                    <span><i class="far fa-clock"></i> ${article.readTime} read</span>
-                </div>
-                <div style="background: rgba(255,255,255,0.05); padding: 30px; border-radius: 10px; line-height: 1.8;">
-                    <p>${article.content}</p>
-                    <p style="margin-top: 20px;">This is a sample article content. In a real application, this would contain the full article text with images, diagrams, and detailed information about the topic.</p>
-                </div>
-                <div style="margin-top: 30px; padding: 20px; background: rgba(255,126,179,0.1); border-radius: 10px;">
-                    <h3 style="color:#ff7eb3;">Key Takeaways</h3>
-                    <ul style="margin-top: 10px; padding-left: 20px;">
-                        <li>Important point 1 about ${article.category.toLowerCase()}</li>
-                        <li>Key insight 2 related to the topic</li>
-                        <li>Practical application 3 for students</li>
-                    </ul>
-                </div>
-            </div>`;
-    }
+    alert(`Reading: ${title}\n\nFull article content will be available soon!`);
 }
 
-function displayDiary() {
-    const content = document.getElementById("content");
+// ==================== DIARY SECTION ====================
+function showDiary() {
+    const content = document.getElementById('content');
     if (!content) return;
     
-    content.innerHTML = `
+    const savedDiary = localStorage.getItem('studyDiary') || '';
+    
+    const html = `
         <div class="diary-section">
             <h2 style="color:#ff7eb3; margin-bottom: 20px;">
                 <i class="fas fa-book"></i> Study Diary
             </h2>
-            <p style="margin-bottom: 30px; color: rgba(255,255,255,0.8);">
-                Keep track of your study progress, notes, and important points here.
+            <p style="color: rgba(255,255,255,0.8); margin-bottom: 20px;">
+                Write down your study notes, important points, and daily reflections here.
             </p>
-            <textarea id="user-diary" class="diary-area" 
-                placeholder="Write your study notes here... You can include:
-• Today's learning objectives
-• Key concepts learned
-• Problems solved
-• Questions to ask
-• Tomorrow's study plan"></textarea>
+            
+            <textarea id="diary-area" class="diary-area" placeholder="Start writing your study notes here...">${savedDiary}</textarea>
+            
             <div class="diary-controls">
-                <button id="save-diary-btn" class="eye-catchy-btn">
-                    <i class="fas fa-save"></i> Save Note
+                <button onclick="saveDiary()" id="save-diary-btn" class="eye-catchy-btn">
+                    <i class="fas fa-save"></i> Save Diary
                 </button>
-                <button id="clear-diary-btn" class="eye-catchy-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">
-                    <i class="fas fa-trash"></i> Clear Note
+                <button onclick="clearDiary()" id="clear-diary-btn" class="eye-catchy-btn">
+                    <i class="fas fa-trash"></i> Clear Diary
+                </button>
+                <button onclick="downloadDiary()" class="eye-catchy-btn" style="background: linear-gradient(45deg, #667eea, #764ba2);">
+                    <i class="fas fa-download"></i> Download
                 </button>
             </div>
-            <p id="diary-status" style="margin-top: 15px; color: #00ffc8; font-weight: bold;"></p>
+            
+            <div style="margin-top: 20px; color: rgba(255,255,255,0.6); font-size: 14px;">
+                <i class="fas fa-info-circle"></i> Your diary is automatically saved to your browser's local storage.
+            </div>
         </div>`;
     
-    // Load saved diary content
-    const savedNote = localStorage.getItem('userDiaryNote');
-    if (savedNote) {
-        const diaryArea = document.getElementById('user-diary');
-        if (diaryArea) diaryArea.value = savedNote;
-    }
-    
-    // Setup diary event listeners
-    setupDiaryListeners();
+    content.innerHTML = html;
 }
 
-function setupDiaryListeners() {
-    const saveBtn = document.getElementById('save-diary-btn');
-    const clearBtn = document.getElementById('clear-diary-btn');
-    const diaryArea = document.getElementById('user-diary');
-    const statusText = document.getElementById('diary-status');
-    
-    if (saveBtn) {
-        saveBtn.addEventListener('click', () => {
-            const note = diaryArea ? diaryArea.value : '';
-            localStorage.setItem('userDiaryNote', note);
-            if (statusText) {
-                statusText.textContent = '✓ Note saved successfully!';
-                setTimeout(() => {
-                    statusText.textContent = '';
-                }, 3000);
-            }
-        });
+function saveDiary() {
+    const diaryText = document.getElementById('diary-area')?.value || '';
+    localStorage.setItem('studyDiary', diaryText);
+    showPopup('Diary saved successfully!');
+}
+
+function clearDiary() {
+    if (confirm('Are you sure you want to clear your diary? This cannot be undone.')) {
+        localStorage.removeItem('studyDiary');
+        document.getElementById('diary-area').value = '';
+        showPopup('Diary cleared!');
+    }
+}
+
+function downloadDiary() {
+    const diaryText = document.getElementById('diary-area')?.value || '';
+    if (!diaryText.trim()) {
+        showError('Diary is empty!');
+        return;
     }
     
-    if (clearBtn) {
-        clearBtn.addEventListener('click', () => {
-            if (confirm('Are you sure you want to clear your diary? This action cannot be undone.')) {
-                if (diaryArea) diaryArea.value = '';
-                localStorage.removeItem('userDiaryNote');
-                if (statusText) {
-                    statusText.textContent = '✗ Diary cleared successfully!';
-                    setTimeout(() => {
-                        statusText.textContent = '';
-                    }, 3000);
-                }
-            }
-        });
-    }
+    const blob = new Blob([diaryText], { type: 'text/plain' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `study-diary-${new Date().toISOString().split('T')[0]}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    
+    showPopup('Diary downloaded!');
 }
 
 // ==================== MUSIC PLAYER ====================
-let currentTrack = 0;
-let isMusicPlaying = false;
+let currentMusicIndex = 0;
+let isPlaying = false;
+let audioElement = null;
 
-function displayMusicPlayer() {
-    const content = document.getElementById("content");
+function showMusicPlayer() {
+    const content = document.getElementById('content');
     if (!content) return;
     
-    const currentMusic = musicPlaylist[currentTrack];
-    
-    content.innerHTML = `
+    let html = `
         <div class="music-player-section">
             <h2 style="color:#ff7eb3; margin-bottom: 20px;">
                 <i class="fas fa-music"></i> Study Music Player
             </h2>
-            <p style="margin-bottom: 30px; color: rgba(255,255,255,0.8);">
-                Listen to relaxing music while you study. Music can help improve concentration and focus.
+            <p style="color: rgba(255,255,255,0.8); margin-bottom: 30px;">
+                Listen to focus-enhancing music while studying. Perfect for concentration!
             </p>
             
-            <div style="background: rgba(0,0,0,0.3); padding: 20px; border-radius: 10px; margin-bottom: 20px;">
-                <h3 style="color:#ffd700; margin-bottom: 15px;" id="current-track-title">${currentMusic.name}</h3>
-                <div style="display: flex; align-items: center; justify-content: center; gap: 15px; margin-bottom: 15px;">
-                    <button onclick="playPreviousTrack()" class="eye-catchy-btn small-btn">
+            <div style="background: rgba(255,255,255,0.1); padding: 20px; border-radius: 10px; margin-bottom: 30px;">
+                <h3 id="current-music-title" style="color: #ffd700;">${musicPlaylist[currentMusicIndex]?.name || 'No Music'}</h3>
+                <p id="current-music-type" style="color: rgba(255,255,255,0.8);">
+                    ${musicPlaylist[currentMusicIndex]?.type ? musicPlaylist[currentMusicIndex].type.charAt(0).toUpperCase() + musicPlaylist[currentMusicIndex].type.slice(1) : ''}
+                </p>
+                
+                <div class="player-controls">
+                    <button onclick="playPrevious()" class="eye-catchy-btn small-btn">
                         <i class="fas fa-step-backward"></i>
                     </button>
-                    <button onclick="toggleMusicPlay()" class="eye-catchy-btn" id="play-music-btn">
+                    <button onclick="togglePlayPause()" id="play-pause-btn" class="eye-catchy-btn">
                         <i class="fas fa-play"></i> Play
                     </button>
-                    <button onclick="playNextTrack()" class="eye-catchy-btn small-btn">
+                    <button onclick="playNext()" class="eye-catchy-btn small-btn">
                         <i class="fas fa-step-forward"></i>
                     </button>
                 </div>
-                
-                <div style="margin-top: 20px;">
-                    <p style="color: rgba(255,255,255,0.8); margin-bottom: 10px;">Quick Access:</p>
-                    <button onclick="openYouTubeLink('${currentMusic.url}')" class="eye-catchy-btn small-btn">
-                        <i class="fab fa-youtube"></i> Open on YouTube
-                    </button>
-                </div>
             </div>
             
-            <div style="margin-top: 30px;">
-                <h3 style="color:#ffd700; margin-bottom: 15px;">Study Music Playlist</h3>
-                <div class="music-playlist">
-                    ${musicPlaylist.map((music, index) => `
-                        <div class="playlist-item ${index === currentTrack ? 'active' : ''}" 
-                             onclick="selectTrack(${index})">
-                            <i class="fas ${index === currentTrack ? 'fa-volume-up' : 'fa-music'}"></i>
-                            <h4>${music.name}</h4>
-                            <small>${music.type}</small>
-                        </div>
-                    `).join('')}
-                </div>
-            </div>
-            
-            <div style="margin-top: 30px; background: rgba(255,126,179,0.1); padding: 15px; border-radius: 10px;">
-                <h4 style="color:#ff7eb3;"><i class="fas fa-headphones"></i> Listening Tips</h4>
-                <ul style="text-align: left; color: rgba(255,255,255,0.8); margin-top: 10px; padding-left: 20px;">
-                    <li>Use headphones for better concentration</li>
-                    <li>Adjust volume to a comfortable level</li>
-                    <li>Try different playlists to find what works best for you</li>
-                    <li>Take breaks every 45-60 minutes</li>
-                </ul>
+            <div class="music-playlist">
+                <h3 style="color: #ff7eb3; margin-bottom: 15px;">Playlist</h3>`;
+    
+    musicPlaylist.forEach((music, index) => {
+        html += `
+            <div class="playlist-item ${index === currentMusicIndex ? 'active' : ''}" 
+                 onclick="selectMusic(${index})">
+                <i class="fas fa-music" style="margin-bottom: 10px;"></i>
+                <h4 style="color: ${index === currentMusicIndex ? '#ffd700' : 'white'}; margin-bottom: 5px;">
+                    ${music.name}
+                </h4>
+                <p style="color: rgba(255,255,255,0.7); font-size: 12px;">
+                    ${music.type.charAt(0).toUpperCase() + music.type.slice(1)}
+                </p>
+            </div>`;
+    });
+    
+    html += `
             </div>
         </div>`;
     
-    updateMusicButton();
+    content.innerHTML = html;
 }
 
-function toggleMusicPlay() {
-    if (isMusicPlaying) {
-        isMusicPlaying = false;
-    } else {
-        // Open YouTube link instead of trying to play audio directly
-        openYouTubeLink(musicPlaylist[currentTrack].url);
-        showPopup(`Opening "${musicPlaylist[currentTrack].name}" on YouTube...`);
-        isMusicPlaying = true;
-    }
-    updateMusicButton();
-}
-
-function updateMusicButton() {
-    const playBtn = document.getElementById('play-music-btn');
-    if (playBtn) {
-        playBtn.innerHTML = isMusicPlaying ? 
-            '<i class="fas fa-pause"></i> Pause' : 
-            '<i class="fas fa-play"></i> Play';
-    }
+function togglePlayPause() {
+    const btn = document.getElementById('play-pause-btn');
+    if (!btn) return;
     
-    const trackTitle = document.getElementById('current-track-title');
-    if (trackTitle) {
-        trackTitle.textContent = musicPlaylist[currentTrack].name;
+    if (!isPlaying) {
+        // Play music
+        const music = musicPlaylist[currentMusicIndex];
+        if (music && music.url) {
+            if (!audioElement) {
+                audioElement = new Audio();
+            }
+            audioElement.src = music.url;
+            audioElement.play().catch(e => {
+                console.error("Error playing audio:", e);
+                window.open(music.url, '_blank');
+            });
+            isPlaying = true;
+            btn.innerHTML = '<i class="fas fa-pause"></i> Pause';
+        }
+    } else {
+        // Pause music
+        if (audioElement) {
+            audioElement.pause();
+        }
+        isPlaying = false;
+        btn.innerHTML = '<i class="fas fa-play"></i> Play';
     }
 }
 
-function selectTrack(index) {
-    currentTrack = index;
-    isMusicPlaying = false;
+function selectMusic(index) {
+    currentMusicIndex = index;
+    const currentMusic = musicPlaylist[currentMusicIndex];
     
     // Update UI
-    updateMusicButton();
-    highlightCurrentTrack();
+    const titleEl = document.getElementById('current-music-title');
+    const typeEl = document.getElementById('current-music-type');
+    const playlistItems = document.querySelectorAll('.playlist-item');
     
-    // Update the content to show selected track
-    const trackTitle = document.getElementById('current-track-title');
-    if (trackTitle) {
-        trackTitle.textContent = musicPlaylist[currentTrack].name;
+    if (titleEl) titleEl.textContent = currentMusic.name;
+    if (typeEl) typeEl.textContent = currentMusic.type.charAt(0).toUpperCase() + currentMusic.type.slice(1);
+    
+    playlistItems.forEach((item, idx) => {
+        if (idx === index) {
+            item.classList.add('active');
+            item.querySelector('h4').style.color = '#ffd700';
+        } else {
+            item.classList.remove('active');
+            item.querySelector('h4').style.color = 'white';
+        }
+    });
+    
+    // If music is playing, play the selected one
+    if (isPlaying) {
+        togglePlayPause(); // Pause current
+        setTimeout(() => togglePlayPause(), 100); // Play selected
     }
 }
 
-function playNextTrack() {
-    currentTrack = (currentTrack + 1) % musicPlaylist.length;
-    isMusicPlaying = false;
-    selectTrack(currentTrack);
+function playNext() {
+    currentMusicIndex = (currentMusicIndex + 1) % musicPlaylist.length;
+    selectMusic(currentMusicIndex);
+    if (isPlaying) {
+        togglePlayPause();
+        setTimeout(() => togglePlayPause(), 100);
+    }
 }
 
-function playPreviousTrack() {
-    currentTrack = (currentTrack - 1 + musicPlaylist.length) % musicPlaylist.length;
-    isMusicPlaying = false;
-    selectTrack(currentTrack);
+function playPrevious() {
+    currentMusicIndex = (currentMusicIndex - 1 + musicPlaylist.length) % musicPlaylist.length;
+    selectMusic(currentMusicIndex);
+    if (isPlaying) {
+        togglePlayPause();
+        setTimeout(() => togglePlayPause(), 100);
+    }
 }
 
-function highlightCurrentTrack() {
-    document.querySelectorAll('.playlist-item').forEach((item, index) => {
-        item.classList.toggle('active', index === currentTrack);
-        const icon = item.querySelector('i');
-        if (icon) {
-            icon.className = index === currentTrack ? 'fas fa-volume-up' : 'fas fa-music';
-        }
-    });
-}
-
-function openYouTubeLink(url) {
-    window.open(url, '_blank');
-}
-
-function displayMovies() {
-    const content = document.getElementById("content");
+// ==================== MOVIES SECTION ====================
+function showMovies() {
+    const content = document.getElementById('content');
     if (!content) return;
     
-    content.innerHTML = `
-        <div style="text-align: center;">
+    const html = `
+        <div class="movies-section">
             <h2 style="color:#ff7eb3; margin-bottom: 20px;">
                 <i class="fas fa-film"></i> Educational Movies & Documentaries
             </h2>
-            <p style="margin-bottom: 30px; color: rgba(255,255,255,0.8);">
+            <p style="color: rgba(255,255,255,0.8); margin-bottom: 30px;">
                 Watch educational content related to agricultural engineering and technology.
             </p>
             
             <div class="movies-search">
-                <input type="text" id="movie-name" class="movie-input" 
-                       placeholder="Search for educational content...">
-                <button onclick="submitMovieRequest()" class="eye-catchy-btn">
+                <input type="text" id="movie-search" class="movie-input" placeholder="Search for educational movies...">
+                <button onclick="searchMovie()" class="eye-catchy-btn">
                     <i class="fas fa-search"></i> Search
                 </button>
             </div>
             
-            <div style="margin-top: 40px;">
-                <h3 style="color:#ffd700; margin-bottom: 20px;">Recommended Documentaries</h3>
-                <div class="course-container">
-                    <div class="course-card" onclick="watchContent('agriculture')">
-                        <i class="fas fa-tractor" style="font-size: 2rem; color: #27ae60; margin-bottom: 10px;"></i>
-                        <h3>Modern Agriculture</h3>
-                        <p>Documentary on modern farming techniques</p>
+            <div class="movies-list">
+                <h3 style="color: #ffd700; margin-bottom: 15px;">Recommended Content</h3>
+                <ol>
+                    <li onclick="openMovie('https://www.youtube.com/results?search_query=agricultural+engineering+documentary')">
+                        <strong>Agricultural Engineering Documentary</strong>
+                        <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 5px;">
+                            Explore modern agricultural engineering practices
+                        </p>
+                    </li>
+                    <li onclick="openMovie('https://www.youtube.com/results?search_query=irrigation+systems+technology')">
+                        <strong>Modern Irrigation Systems</strong>
+                        <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 5px;">
+                            Learn about advanced irrigation technologies
+                        </p>
+                    </li>
+                    <li onclick="openMovie('https://www.youtube.com/results?search_query=sustainable+agriculture+techniques')">
+                        <strong>Sustainable Agriculture</strong>
+                        <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 5px;">
+                            Environmentally friendly farming methods
+                        </p>
+                    </li>
+                    <li onclick="openMovie('https://www.youtube.com/results?search_query=farm+machinery+technology')">
+                        <strong>Farm Machinery Technology</strong>
+                        <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 5px;">
+                            Latest advancements in farm equipment
+                        </p>
+                    </li>
+                    <li onclick="openMovie('https://www.youtube.com/results?search_query=water+management+agriculture')">
+                        <strong>Water Management in Agriculture</strong>
+                        <p style="color: rgba(255,255,255,0.7); font-size: 14px; margin-top: 5px;">
+                            Efficient water use for farming
+                        </p>
+                    </li>
+                </ol>
+            </div>
+            
+            <div style="margin-top: 30px; color: rgba(255,255,255,0.6); font-size: 14px;">
+                <i class="fas fa-info-circle"></i> Click on any item to search for related videos on YouTube.
+            </div>
+        </div>`;
+    
+    content.innerHTML = html;
+    
+    // Add event listener for search input
+    const searchInput = document.getElementById('movie-search');
+    if (searchInput) {
+        searchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                searchMovie();
+            }
+        });
+    }
+}
+
+function searchMovie() {
+    const searchTerm = document.getElementById('movie-search')?.value.trim();
+    if (searchTerm) {
+        window.open(`https://www.youtube.com/results?search_query=${encodeURIComponent(searchTerm + ' agriculture engineering')}`, '_blank');
+    } else {
+        showError('Please enter a search term!');
+    }
+}
+
+function openMovie(url) {
+    window.open(url, '_blank');
+}
+
+// ==================== ENHANCED STATISTICS ====================
+function showDetailedStats() {
+    if (currentUserRole !== 'admin') {
+        alert("Access Denied! Admin Only Feature.");
+        return;
+    }
+    
+    const content = document.getElementById("content");
+    if (!content) return;
+    
+    // Update statistics first
+    updateUserStatsDisplay();
+    
+    const html = `
+        <div class="enhanced-stats-section">
+            <h2 style="color:#ff7eb3; margin-bottom: 20px;">
+                <i class="fas fa-chart-line"></i> Statistics Dashboard
+            </h2>
+            
+            <!-- Real-time Statistics Cards -->
+            <div class="stats-bar">
+                <div class="stat-card">
+                    <i class="fas fa-users fa-2x" style="color: #3498db; margin-bottom: 10px;"></i>
+                    <div class="stat-value" id="stat-total-users">${userStats.totalUsers}</div>
+                    <div class="stat-label">Total Registered Users</div>
+                </div>
+                
+                <div class="stat-card">
+                    <i class="fas fa-eye fa-2x" style="color: #2ecc71; margin-bottom: 10px;"></i>
+                    <div class="stat-value" id="stat-active-users">${userStats.activeUsers}</div>
+                    <div class="stat-label">Currently Active</div>
+                </div>
+                
+                <div class="stat-card">
+                    <i class="fas fa-calendar-day fa-2x" style="color: #e74c3c; margin-bottom: 10px;"></i>
+                    <div class="stat-value" id="stat-today-users">${userStats.todayUsers}</div>
+                    <div class="stat-label">New Today</div>
+                </div>
+                
+                <div class="stat-card">
+                    <i class="fas fa-university fa-2x" style="color: #9b59b6; margin-bottom: 10px;"></i>
+                    <div class="stat-value" id="stat-departments">${Object.keys(userStats.departments).length}</div>
+                    <div class="stat-label">Departments</div>
+                </div>
+            </div>
+            
+            <!-- Charts Section -->
+            <div class="charts-container">
+                <div class="chart-wrapper">
+                    <h4><i class="fas fa-chart-pie"></i> Department Distribution</h4>
+                    <div style="height: 300px;">
+                        <canvas id="dept-distribution-chart"></canvas>
                     </div>
-                    <div class="course-card" onclick="watchContent('water')">
-                        <i class="fas fa-tint" style="font-size: 2rem; color: #3498db; margin-bottom: 10px;"></i>
-                        <h3>Water Management</h3>
-                        <p>Global water conservation methods</p>
-                    </div>
-                    <div class="course-card" onclick="watchContent('climate')">
-                        <i class="fas fa-cloud-sun" style="font-size: 2rem; color: #e74c3c; margin-bottom: 10px;"></i>
-                        <h3>Climate Change</h3>
-                        <p>Impact of climate on agriculture</p>
+                </div>
+                
+                <div class="chart-wrapper">
+                    <h4><i class="fas fa-chart-bar"></i> Daily Registrations (Last 7 Days)</h4>
+                    <div style="height: 300px;">
+                        <canvas id="registration-chart"></canvas>
                     </div>
                 </div>
             </div>
             
-            <div class="movies-list">
-                <h3 style="color:#ffd700; margin-bottom: 20px;">Top Educational Films</h3>
-                <ol>
-                    <li>The Biggest Little Farm</li>
-                    <li>Food, Inc.</li>
-                    <li>Kiss the Ground</li>
-                    <li>The River and the Wall</li>
-                    <li>Sustainable</li>
-                    <li>Seed: The Untold Story</li>
-                    <li>The Harvest</li>
-                    <li>Farmland</li>
-                    <li>Living Soil</li>
-                    <li>The Future of Food</li>
-                </ol>
+            <!-- Department-wise Statistics -->
+            <div style="margin-top: 30px;">
+                <h4 style="color:#ff7eb3; margin-bottom: 15px;">
+                    <i class="fas fa-list-alt"></i> Department Details
+                </h4>
+                <div id="dept-details" class="dept-details-grid">
+                    ${updateDepartmentDetailsHTML()}
+                </div>
+            </div>
+            
+            <!-- Quick Actions -->
+            <div style="margin-top: 30px; display: flex; gap: 15px; justify-content: center;">
+                <button onclick="refreshAllStats()" class="eye-catchy-btn">
+                    <i class="fas fa-sync-alt"></i> Refresh All Stats
+                </button>
+                <button onclick="showUserList()" class="eye-catchy-btn">
+                    <i class="fas fa-users"></i> View All Users
+                </button>
+                <button onclick="exportUserData()" class="eye-catchy-btn">
+                    <i class="fas fa-download"></i> Export Data
+                </button>
             </div>
         </div>`;
+    
+    content.innerHTML = html;
+    
+    // Initialize charts
+    setTimeout(() => {
+        updateDepartmentChart();
+        updateRegistrationChart();
+    }, 100);
 }
 
-function submitMovieRequest() {
-    const movieName = document.getElementById("movie-name")?.value.trim();
-    if (movieName) {
-        const subject = "Educational Content Request";
-        const body = `I would like to request educational content about: ${movieName}`;
-        window.location.href = `mailto:deboneel1998@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        showPopup("Request sent! We'll notify you when content is available.");
-    } else {
-        alert("Please enter what you're looking for!");
+function updateDepartmentChart() {
+    const ctx = document.getElementById('dept-distribution-chart');
+    if (!ctx) return;
+    
+    if (deptChart) {
+        deptChart.destroy();
     }
-}
-
-function watchContent(type) {
-    const videos = {
-        'agriculture': 'dCvW9Lq3k6I',
-        'water': 'B48hJSQ7WUI',
-        'climate': 'G4H1N_yXBiA'
+    
+    const departments = Object.keys(userStats.departments);
+    const counts = Object.values(userStats.departments);
+    
+    if (departments.length === 0) {
+        ctx.innerHTML = '<p style="color: rgba(255,255,255,0.6); text-align: center; padding: 20px;">No department data available</p>';
+        return;
+    }
+    
+    // Colors for each department
+    const colors = {
+        'CSM': '#3498db',
+        'FPM': '#2ecc71',
+        'FSEE': '#9b59b6',
+        'IWM': '#f1c40f',
+        'OTHERS': '#95a5a6'
     };
     
-    if (videos[type]) {
-        const content = document.getElementById("content");
-        if (!content) return;
-        
-        content.innerHTML = `
-            <div style="text-align: left;">
-                <button onclick="displayMovies()" class="eye-catchy-btn small-btn" style="margin-bottom: 20px;">
-                    <i class="fas fa-arrow-left"></i> Back to Movies
-                </button>
-                <div style="position: relative; padding-bottom: 56.25%; height: 0; overflow: hidden; border-radius: 10px;">
-                    <iframe src="https://www.youtube.com/embed/${videos[type]}?autoplay=1" 
-                            style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none;"
-                            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                            allowfullscreen>
-                    </iframe>
-                </div>
-            </div>`;
-    }
+    const backgroundColors = departments.map(dept => colors[dept] || getRandomColor());
+    
+    deptChart = new Chart(ctx.getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: departments,
+            datasets: [{
+                data: counts,
+                backgroundColor: backgroundColors,
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderWidth: 2,
+                hoverOffset: 20
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#fff',
+                        font: {
+                            size: 12
+                        },
+                        padding: 20
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#ff7eb3',
+                    bodyColor: '#fff',
+                    borderColor: '#ff7eb3',
+                    borderWidth: 1,
+                    callbacks: {
+                        label: function(context) {
+                            const label = context.label || '';
+                            const value = context.parsed || 0;
+                            const total = context.dataset.data.reduce((a, b) => a + b, 0);
+                            const percentage = Math.round((value / total) * 100);
+                            return `${label}: ${value} users (${percentage}%)`;
+                        }
+                    }
+                }
+            }
+        }
+    });
 }
 
-// ==================== USER LIST DISPLAY ====================
-function showUserList() {
+function updateRegistrationChart() {
+    const ctx = document.getElementById('registration-chart');
+    if (!ctx) return;
+    
+    if (regChart) {
+        regChart.destroy();
+    }
+    
+    // Get last 7 days
+    const dates = [];
+    const data = [];
+    
+    for (let i = 6; i >= 0; i--) {
+        const date = new Date();
+        date.setDate(date.getDate() - i);
+        const dateStr = date.toISOString().split('T')[0];
+        const dayLabel = date.toLocaleDateString('en-US', { weekday: 'short' });
+        dates.push(dayLabel);
+        data.push(userStats.registrationHistory[dateStr] || 0);
+    }
+    
+    regChart = new Chart(ctx.getContext('2d'), {
+        type: 'bar',
+        data: {
+            labels: dates,
+            datasets: [{
+                label: 'New Registrations',
+                data: data,
+                backgroundColor: 'rgba(255, 126, 179, 0.5)',
+                borderColor: '#ff7eb3',
+                borderWidth: 2,
+                borderRadius: 5,
+                fill: true
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    labels: {
+                        color: '#fff'
+                    }
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    },
+                    ticks: {
+                        color: '#fff',
+                        stepSize: 1
+                    },
+                    title: {
+                        display: true,
+                        text: 'Number of Users',
+                        color: '#fff'
+                    }
+                },
+                x: {
+                    grid: {
+                        color: 'rgba(255,255,255,0.1)'
+                    },
+                    ticks: {
+                        color: '#fff'
+                    },
+                    title: {
+                        display: true,
+                        text: 'Day',
+                        color: '#fff'
+                    }
+                }
+            }
+        }
+    });
+}
+
+function updateDepartmentDetailsHTML() {
+    let html = '';
+    const departments = Object.entries(userStats.departments)
+        .sort((a, b) => b[1] - a[1]);
+    
+    if (departments.length === 0) {
+        return '<p style="color: rgba(255,255,255,0.6); text-align: center; grid-column: 1/-1;">No department data available</p>';
+    }
+    
+    departments.forEach(([dept, count]) => {
+        const percentage = userStats.totalUsers > 0 ? Math.round((count / userStats.totalUsers) * 100) : 0;
+        const deptLower = dept.toLowerCase();
+        const deptClass = deptLower === 'csm' || deptLower === 'fpm' || deptLower === 'fsee' || deptLower === 'iwm' ? 
+                          `dept-${deptLower}` : 'dept-others';
+        
+        html += `
+            <div class="dept-card">
+                <span class="dept-badge ${deptClass}">${dept}</span>
+                <div class="dept-count">${count}</div>
+                <div style="font-size: 0.9rem; color: rgba(255,255,255,0.6);">
+                    ${percentage}% of total users
+                </div>
+                <div class="dept-percentage">
+                    <div class="dept-percentage-fill" style="width: ${percentage}%;"></div>
+                </div>
+                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.7);">
+                    ${getDeptDescription(dept)}
+                </div>
+            </div>`;
+    });
+    
+    return html;
+}
+
+function getDeptDescription(dept) {
+    const deptUpper = dept.toUpperCase();
+    const descriptions = {
+        'CSM': 'Computer Science and Mathematics',
+        'FPM': 'Farm Power and Machinery',
+        'FSEE': 'Farm Structure and Environmental Engineering',
+        'IWM': 'Irrigation and Water Management',
+        'OTHERS': 'Other departments'
+    };
+    return descriptions[deptUpper] || dept;
+}
+
+// ==================== ADMIN FUNCTIONS ====================
+async function showUserList() {
     if (currentUserRole !== 'admin') {
         alert("Access Denied! Admin Only Feature.");
         return;
     }
 
+    await loadAllUsersFromFirebase();
+    
     const content = document.getElementById("content");
     if (!content) return;
     
-    const users = Object.values(registeredUsers).filter(u => u.id !== ADMIN_ID);
-
+    const users = Object.values(registeredUsers).filter(u => !u.isAdmin);
+    
     let html = `
-        <h2 style="color:#ff7eb3; margin-bottom: 20px;">
-            <i class="fas fa-users"></i> Registered Users (${users.length})
-        </h2>
-        
-        <div class="user-stats-cards">
-            <div class="user-stat-card">
-                <div class="user-stat-value">${users.length}</div>
-                <div class="user-stat-label">Total Users</div>
+        <div class="user-management-section">
+            <h2 style="color:#ff7eb3; margin-bottom: 20px;">
+                <i class="fas fa-users"></i> User Management (${users.length} Users)
+            </h2>
+            
+            <!-- Search and Filters -->
+            <div class="filter-controls">
+                <div class="search-container">
+                    <input type="text" id="user-search" class="search-input" placeholder="Search users by name, ID, department...">
+                </div>
+                
+                <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                    <button onclick="filterUsers('all')" class="filter-btn active">All Users</button>
+                    <button onclick="filterUsers('active')" class="filter-btn">
+                        <i class="fas fa-circle" style="color: #27ae60;"></i> Active
+                    </button>
+                    <button onclick="filterUsers('csm')" class="filter-btn">CSM</button>
+                    <button onclick="filterUsers('fpm')" class="filter-btn">FPM</button>
+                    <button onclick="filterUsers('fsee')" class="filter-btn">FSEE</button>
+                    <button onclick="filterUsers('iwm')" class="filter-btn">IWM</button>
+                </div>
             </div>
-            <div class="user-stat-card">
-                <div class="user-stat-value">${Object.keys(userStats.departments).length}</div>
-                <div class="user-stat-label">Departments</div>
+            
+            <!-- Statistics Summary -->
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin-bottom: 20px;">
+                <div style="background: rgba(52, 152, 219, 0.2); padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #3498db;">${users.length}</div>
+                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.8);">Total Users</div>
+                </div>
+                <div style="background: rgba(46, 204, 113, 0.2); padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #2ecc71;">${users.filter(u => u.isActive).length}</div>
+                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.8);">Active Now</div>
+                </div>
+                <div style="background: rgba(155, 89, 182, 0.2); padding: 15px; border-radius: 10px; text-align: center;">
+                    <div style="font-size: 2rem; font-weight: bold; color: #9b59b6;">${Object.keys(userStats.departments).length}</div>
+                    <div style="font-size: 0.9rem; color: rgba(255,255,255,0.8);">Departments</div>
+                </div>
             </div>
-            <div class="user-stat-card">
-                <div class="user-stat-value">${userStats.todayUsers}</div>
-                <div class="user-stat-label">Today's Users</div>
-            </div>
-        </div>`;
+            
+            <!-- Users Grid -->
+            <div id="users-grid" class="user-grid">`;
     
     if (users.length === 0) {
-        content.innerHTML = html + "<p style='color: rgba(255,255,255,0.6); text-align: center; padding: 40px;'>No users registered yet.</p>";
-        return;
+        html += `<div style="grid-column: 1/-1; text-align: center; padding: 40px; color: rgba(255,255,255,0.6);">
+                    <i class="fas fa-users fa-3x" style="margin-bottom: 20px;"></i>
+                    <h3>No users registered yet</h3>
+                </div>`;
+    } else {
+        users.sort((a, b) => new Date(b.registrationDate) - new Date(a.registrationDate))
+            .forEach(user => {
+                const dept = user.department || 'Others';
+                const deptClass = dept.toLowerCase() === 'csm' || dept.toLowerCase() === 'fpm' || 
+                                 dept.toLowerCase() === 'fsee' || dept.toLowerCase() === 'iwm' ? 
+                                 `dept-${dept.toLowerCase()}` : 'dept-others';
+                
+                html += `
+                    <div class="user-card" data-user-id="${user.id}" data-dept="${dept.toLowerCase()}" data-active="${user.isActive}">
+                        <div class="user-card-header">
+                            <div>
+                                <div style="font-weight: bold; color: #ff7eb3;">${user.nickname || user.fullName}</div>
+                                <div style="font-size: 0.8rem; color: rgba(255,255,255,0.6);">ID: ${user.id}</div>
+                            </div>
+                            <div>
+                                <span class="user-status ${user.isActive ? 'status-active' : 'status-inactive'}"></span>
+                            </div>
+                        </div>
+                        
+                        <div style="margin: 10px 0;">
+                            <div style="font-size: 0.9rem; margin-bottom: 5px;">
+                                <i class="fas fa-university"></i> ${user.college || 'Not specified'}
+                            </div>
+                            <div style="font-size: 0.9rem;">
+                                <span class="dept-badge ${deptClass}">${dept}</span>
+                            </div>
+                        </div>
+                        
+                        <div style="font-size: 0.8rem; color: rgba(255,255,255,0.6); margin: 10px 0;">
+                            <div><i class="far fa-calendar"></i> Joined: ${new Date(user.registrationDate).toLocaleDateString()}</div>
+                            <div><i class="fas fa-sign-in-alt"></i> Logins: ${user.loginCount || 0}</div>
+                        </div>
+                        
+                        <div class="user-actions">
+                            <button onclick="viewUserDetails('${user.id}')" class="eye-catchy-btn small-btn" style="flex: 1;">
+                                <i class="fas fa-eye"></i> View
+                            </button>
+                            <button onclick="deleteUser('${user.id}')" class="eye-catchy-btn small-btn" style="background: linear-gradient(45deg, #e74c3c, #c0392b);">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                    </div>`;
+            });
     }
-
-    html += `
-        <div class="user-table-container">
-            <table class="user-table">
-                <thead>
-                    <tr>
-                        <th>ID</th>
-                        <th>Name</th>
-                        <th>Nickname</th>
-                        <th>College</th>
-                        <th>Department</th>
-                        <th>Registration Date</th>
-                        <th>Actions</th>
-                    </tr>
-                </thead>
-                <tbody>`;
-
-    users.sort((a, b) => new Date(b.registrationDate) - new Date(a.registrationDate))
-        .forEach(u => {
-            html += `
-                <tr>
-                    <td><strong>${u.id}</strong></td>
-                    <td>${u.fullName}</td>
-                    <td>${u.nickname || '-'}</td>
-                    <td>${u.college}</td>
-                    <td><span style="background: rgba(255,126,179,0.2); padding: 3px 8px; border-radius: 4px; font-size: 12px;">${u.department}</span></td>
-                    <td>${new Date(u.registrationDate).toLocaleDateString()}</td>
-                    <td>
-                        <button onclick="viewUserDetails('${u.id}')" class="eye-catchy-btn user-action-btn">
-                            <i class="fas fa-eye"></i> View
-                        </button>
-                    </td>
-                </tr>`;
-        });
     
-    html += `</tbody></table></div>`;
+    html += `</div></div>`;
     content.innerHTML = html;
+    
+    // Add search functionality
+    setupUserSearch();
 }
 
-// ==================== USER DETAILS VIEW ====================
-function viewUserDetails(userId) {
-    const user = registeredUsers[userId];
-    if (!user) {
-        alert("User not found!");
+function setupUserSearch() {
+    const searchInput = document.getElementById('user-search');
+    if (!searchInput) return;
+    
+    searchInput.addEventListener('input', function() {
+        const searchTerm = this.value.toLowerCase();
+        const userCards = document.querySelectorAll('.user-card');
+        
+        userCards.forEach(card => {
+            const userId = card.getAttribute('data-user-id').toLowerCase();
+            const userName = card.querySelector('div[style*="font-weight: bold"]')?.textContent.toLowerCase() || '';
+            const userDept = card.getAttribute('data-dept') || '';
+            
+            if (userId.includes(searchTerm) || userName.includes(searchTerm) || userDept.includes(searchTerm)) {
+                card.style.display = 'block';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+}
+
+function filterUsers(filter) {
+    const buttons = document.querySelectorAll('.filter-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    event.target.classList.add('active');
+    
+    const userCards = document.querySelectorAll('.user-card');
+    
+    userCards.forEach(card => {
+        const dept = card.getAttribute('data-dept');
+        const active = card.getAttribute('data-active') === 'true';
+        
+        switch(filter) {
+            case 'all':
+                card.style.display = 'block';
+                break;
+            case 'active':
+                card.style.display = active ? 'block' : 'none';
+                break;
+            case 'csm':
+            case 'fpm':
+            case 'fsee':
+            case 'iwm':
+                card.style.display = dept === filter ? 'block' : 'none';
+                break;
+        }
+    });
+}
+
+async function deleteUser(userId) {
+    if (currentUserRole !== 'admin') {
+        alert("Access Denied! Admin Only Feature.");
         return;
     }
+    
+    if (!confirm(`Are you sure you want to delete user ${userId}? This action cannot be undone.`)) {
+        return;
+    }
+    
+    // Delete from local storage
+    delete registeredUsers[userId];
+    localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+    
+    // Delete from Firebase
+    if (db) {
+        try {
+            await db.collection('users').doc(userId).delete();
+            console.log(`✅ User ${userId} deleted from Firebase`);
+        } catch (error) {
+            console.error("❌ Error deleting user from Firebase:", error);
+        }
+    }
+    
+    // Refresh user list
+    showUserList();
+    updateUserStatsDisplay();
+    showPopup(`User ${userId} deleted successfully!`);
+}
 
+function viewUserDetails(userId) {
+    const user = registeredUsers[userId];
+    if (!user) return;
+    
     const modal = document.getElementById('user-details-modal');
     const content = document.getElementById('user-details-content');
+    
+    if (!modal || !content) return;
     
     const html = `
         <div class="user-info-grid">
             <div class="user-info-card">
-                <h4><i class="fas fa-id-card"></i> Basic Information</h4>
+                <h4><i class="fas fa-user"></i> Personal Information</h4>
+                <div class="user-info-item">
+                    <span class="user-info-label">Full Name:</span>
+                    <span class="user-info-value">${user.fullName || 'Not specified'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Nickname:</span>
+                    <span class="user-info-value">${user.nickname || 'Not specified'}</span>
+                </div>
                 <div class="user-info-item">
                     <span class="user-info-label">ID:</span>
                     <span class="user-info-value">${user.id}</span>
                 </div>
                 <div class="user-info-item">
-                    <span class="user-info-label">Full Name:</span>
-                    <span class="user-info-value">${user.fullName}</span>
-                </div>
-                <div class="user-info-item">
-                    <span class="user-info-label">Nickname:</span>
-                    <span class="user-info-value">${user.nickname || 'Not set'}</span>
-                </div>
-                <div class="user-info-item">
                     <span class="user-info-label">Registration No:</span>
-                    <span class="user-info-value">${user.regNo}</span>
+                    <span class="user-info-value">${user.regNo || 'Not specified'}</span>
                 </div>
             </div>
             
             <div class="user-info-card">
-                <h4><i class="fas fa-university"></i> Academic Information</h4>
+                <h4><i class="fas fa-graduation-cap"></i> Academic Information</h4>
                 <div class="user-info-item">
                     <span class="user-info-label">College:</span>
-                    <span class="user-info-value">${user.college}</span>
+                    <span class="user-info-value">${user.college || 'Not specified'}</span>
                 </div>
                 <div class="user-info-item">
                     <span class="user-info-label">Department:</span>
-                    <span class="user-info-value">${user.department}</span>
+                    <span class="user-info-value">${user.department || 'Not specified'}</span>
                 </div>
                 <div class="user-info-item">
                     <span class="user-info-label">Supervisor:</span>
@@ -1269,11 +1667,11 @@ function viewUserDetails(userId) {
                 <h4><i class="fas fa-address-book"></i> Contact Information</h4>
                 <div class="user-info-item">
                     <span class="user-info-label">Email:</span>
-                    <span class="user-info-value">${user.email || 'Not provided'}</span>
+                    <span class="user-info-value">${user.email || 'Not specified'}</span>
                 </div>
                 <div class="user-info-item">
                     <span class="user-info-label">Phone:</span>
-                    <span class="user-info-value">${user.phone || 'Not provided'}</span>
+                    <span class="user-info-value">${user.phone || 'Not specified'}</span>
                 </div>
                 <div class="user-info-item">
                     <span class="user-info-label">Hometown:</span>
@@ -1286,213 +1684,66 @@ function viewUserDetails(userId) {
             </div>
             
             <div class="user-info-card">
-                <h4><i class="fas fa-chart-line"></i> Account Statistics</h4>
+                <h4><i class="fas fa-chart-line"></i> Activity Information</h4>
                 <div class="user-info-item">
-                    <span class="user-info-label">Registered:</span>
+                    <span class="user-info-label">Registration Date:</span>
                     <span class="user-info-value">${new Date(user.registrationDate).toLocaleString()}</span>
                 </div>
                 <div class="user-info-item">
                     <span class="user-info-label">Last Login:</span>
-                    <span class="user-info-value">${user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never logged in'}</span>
+                    <span class="user-info-value">${user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never'}</span>
                 </div>
                 <div class="user-info-item">
                     <span class="user-info-label">Login Count:</span>
                     <span class="user-info-value">${user.loginCount || 0}</span>
                 </div>
                 <div class="user-info-item">
-                    <span class="user-info-label">Role:</span>
-                    <span class="user-info-value">${user.role || 'user'}</span>
+                    <span class="user-info-label">Status:</span>
+                    <span class="user-info-value" style="color: ${user.isActive ? '#27ae60' : '#e74c3c'}">
+                        ${user.isActive ? 'Active' : 'Inactive'}
+                    </span>
                 </div>
             </div>
-        </div>
-        
-        <div style="text-align: center; margin-top: 30px;">
-            <button onclick="exportSingleUserData('${userId}')" class="eye-catchy-btn">
-                <i class="fas fa-download"></i> Export User Data
-            </button>
         </div>`;
     
     content.innerHTML = html;
-    modal.classList.add('active');
+    modal.classList.remove('hidden');
 }
 
 function closeUserDetails() {
     const modal = document.getElementById('user-details-modal');
-    modal.classList.remove('active');
-}
-
-// ==================== ADMIN PANEL ====================
-function showDetailedStats() {
-    if (currentUserRole !== 'admin') {
-        alert("Access Denied! Admin Only Feature.");
-        return;
-    }
-    
-    const modal = document.getElementById('admin-panel-modal');
-    if (!modal) return;
-    
-    modal.classList.remove('hidden');
-    modal.style.display = 'block';
-    
-    setTimeout(() => {
-        modal.style.opacity = '1';
-    }, 10);
-    
-    updateAdminPanel();
-}
-
-function closeAdminPanel() {
-    const modal = document.getElementById('admin-panel-modal');
-    if (!modal) return;
-    
-    modal.style.opacity = '0';
-    setTimeout(() => {
+    if (modal) {
         modal.classList.add('hidden');
-        modal.style.display = 'none';
-    }, 300);
-}
-
-function updateAdminPanel() {
-    updateUserStats();
-    updateRecentUsers();
-}
-
-function updateRecentUsers() {
-    const recentUsersList = document.getElementById('recent-users-list');
-    if (!recentUsersList) return;
-    
-    const users = Object.values(registeredUsers)
-        .filter(u => u.id !== ADMIN_ID)
-        .sort((a, b) => new Date(b.registrationDate) - new Date(a.registrationDate))
-        .slice(0, 5);
-    
-    if (users.length === 0) {
-        recentUsersList.innerHTML = '<p style="color: rgba(255,255,255,0.6); text-align: center; padding: 20px;">No users registered yet</p>';
-        return;
     }
-    
-    let html = '';
-    users.forEach(user => {
-        html += `
-            <div class="recent-user-item" onclick="viewUserDetails('${user.id}')" style="cursor: pointer;">
-                <div class="user-avatar">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="user-info">
-                    <div class="user-id">${user.fullName}</div>
-                    <div class="user-time">ID: ${user.id} | ${user.department}</div>
-                    <div class="user-time">${new Date(user.registrationDate).toLocaleDateString()}</div>
-                </div>
-            </div>`;
-    });
-    
-    recentUsersList.innerHTML = html;
 }
 
-function refreshStats() {
-    updateUserStats();
-    showPopup('Statistics refreshed!');
-}
-
-// ==================== DATA EXPORT ====================
-function exportUserData() {
-    if (currentUserRole !== 'admin') {
-        alert("Access Denied! Admin Only Feature.");
-        return;
-    }
-    
-    const users = Object.values(registeredUsers).filter(u => u.id !== ADMIN_ID);
-    
-    if (users.length === 0) {
-        showPopup('No users to export!');
-        return;
-    }
-    
-    const csvContent = [
-        ['ID', 'Full Name', 'Nickname', 'Registration No', 'College', 'Department', 'Email', 
-         'Phone', 'Hometown', 'Hall Name', 'Supervisor', 'Registration Date', 'Last Login', 'Login Count'],
-        ...users.map(u => [
-            u.id,
-            u.fullName,
-            u.nickname || '',
-            u.regNo,
-            u.college,
-            u.department,
-            u.email || '',
-            u.phone || '',
-            u.hometown || '',
-            u.hallName || '',
-            u.supervisor || '',
-            u.registrationDate,
-            u.lastLogin || '',
-            u.loginCount || 0
-        ])
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `eduhub-users-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-    showPopup('User data exported successfully!');
-}
-
-function exportSingleUserData(userId) {
-    const user = registeredUsers[userId];
-    if (!user) {
-        showPopup('User not found!');
-        return;
-    }
-    
-    const csvContent = [
-        ['Field', 'Value'],
-        ['ID', user.id],
-        ['Full Name', user.fullName],
-        ['Nickname', user.nickname || ''],
-        ['Registration No', user.regNo],
-        ['College', user.college],
-        ['Department', user.department],
-        ['Email', user.email || ''],
-        ['Phone', user.phone || ''],
-        ['Hometown', user.hometown || ''],
-        ['Hall Name', user.hallName || ''],
-        ['Supervisor', user.supervisor || ''],
-        ['Registration Date', user.registrationDate],
-        ['Last Login', user.lastLogin || ''],
-        ['Login Count', user.loginCount || 0]
-    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
-    
-    const blob = new Blob([csvContent], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `eduhub-user-${user.id}-${new Date().toISOString().split('T')[0]}.csv`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    
-    showPopup('User data exported successfully!');
+function refreshAllStats() {
+    loadAllUsersFromFirebase();
+    updateUserStatsDisplay();
+    showPopup('All statistics refreshed!');
 }
 
 // ==================== HELPER FUNCTIONS ====================
+function getRandomColor() {
+    const letters = '0123456789ABCDEF';
+    let color = '#';
+    for (let i = 0; i < 6; i++) {
+        color += letters[Math.floor(Math.random() * 16)];
+    }
+    return color;
+}
+
 function showPopup(msg) {
     const popup = document.getElementById("popup");
     if (!popup) return;
     
-    const newMsg = `🎉 ${msg} 🚀`;
     const h3 = popup.querySelector('h3');
-    if (h3) h3.textContent = newMsg;
+    if (h3) h3.textContent = msg;
     
-    popup.style.display = "block";
-    popup.style.transform = "translate(-50%, -50%) scale(1)";
+    popup.classList.remove('hidden');
     
     setTimeout(() => {
-        popup.style.transform = "translate(-50%, -50%) scale(0)";
-        setTimeout(() => popup.style.display = "none", 500);
+        popup.classList.add('hidden');
     }, 3000);
 }
 
@@ -1510,7 +1761,7 @@ function showError(msg) {
 function closePopup() {
     const popup = document.getElementById("popup");
     if (popup) {
-        popup.style.display = "none";
+        popup.classList.add('hidden');
     }
 }
 
@@ -1532,7 +1783,6 @@ function updateClock() {
         `;
     }
 }
-setInterval(updateClock, 1000);
 
 function setupTypingAnimation() {
     const text = `Welcome, ${currentUserNickname}! Ready to learn? ✨`;
@@ -1568,7 +1818,7 @@ function createMouseTrail(e) {
 function fireConfetti() {
     if (typeof confetti !== 'undefined') {
         confetti({
-            particleCount: 150,
+            particleCount: 100,
             spread: 70,
             origin: { y: 0.6 }
         });
@@ -1586,60 +1836,3 @@ function displayRandomQuote() {
         quoteAuthorEl.textContent = '— ' + quote.author;
     }
 }
-
-function playWelcomeSound() {
-    const welcomeAudio = document.getElementById('welcome-chime');
-    if (welcomeAudio) {
-        welcomeAudio.play().catch(e => console.log("Welcome sound blocked: ", e));
-    }
-}
-
-function showInstructions() {
-    let msg = "📚 EduHub - Educational Platform\n\n";
-    msg += "1. COURSE SELECTION: Browse and enroll in courses from different semesters\n";
-    msg += "2. ARTICLES: Read educational articles on various topics\n";
-    msg += "3. STUDY DIARY: Keep track of your study notes and progress\n";
-    msg += "4. MUSIC PLAYER: Listen to study music for better concentration\n";
-    msg += "5. MOVIES: Watch educational documentaries and films\n\n";
-    msg += "Use the Day/Night toggle button to switch themes\n";
-    
-    if (currentUserRole === 'admin') {
-        msg += "\n🔧 ADMIN FEATURES:\n";
-        msg += "- View all registered users and their details\n";
-        msg += "- View department-wise statistics\n";
-        msg += "- Export user data as CSV files\n";
-        msg += "- Track user registration and login activity\n";
-    }
-    
-    alert(msg);
-}
-
-// Nebula Movement
-const nebula = document.getElementById('nebulaLight');
-let idx = 0;
-const corners = [
-    { top: 50, left: 50 },
-    { top: 50, left: window.innerWidth - 170 },
-    { top: window.innerHeight - 170, left: window.innerWidth - 170 },
-    { top: window.innerHeight - 170, left: 50 }
-];
-
-function moveNebula() {
-    const pos = corners[idx];
-    if (nebula) {
-        nebula.style.top = pos.top + 'px';
-        nebula.style.left = pos.left + 'px';
-    }
-    idx = (idx + 1) % 4;
-    setTimeout(moveNebula, 5000);
-}
-
-// Initialize nebula movement after page loads
-window.addEventListener('load', () => {
-    moveNebula();
-});
-
-window.addEventListener('resize', () => {
-    corners[1].left = window.innerWidth - 170;
-    corners[2].left = window.innerWidth - 170;
-});
