@@ -4,120 +4,13 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Creative Educational Hub - AET</title>
-    <link rel="stylesheet" href="./styles.css">
+    <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
-    <!-- Chart.js for statistics -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    
-    <!-- Python Backend Configuration -->
-    <script type="application/json" id="python-config">
-    {
-        "api_url": "http://localhost:5000",
-        "debug": true
-    }
-    </script>
-    
-    <style>
-        /* Social icons styling */
-        .social-icons {
-            display: flex;
-            justify-content: center;
-            gap: 12px;
-            margin-top: 20px;
-            flex-wrap: wrap;
-        }
-        
-        .social-icon {
-            width: 45px;
-            height: 45px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: white;
-            transition: transform 0.3s;
-        }
-        
-        .social-icon:hover {
-            transform: translateY(-3px);
-        }
-        
-        .whatsapp-icon {
-            background: #25D366;
-        }
-        
-        .email-icon {
-            background: #EA4335;
-        }
-        
-        .instagram-icon {
-            background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D);
-        }
-        
-        .linkedin-icon {
-            background: #0077B5;
-        }
-        
-        .facebook-icon {
-            background: #1877F2;
-        }
-        
-        .response-note {
-            text-align: center;
-            margin-top: 15px;
-            color: rgba(255,255,255,0.7);
-            font-size: 13px;
-        }
-        
-        /* Forgot Password Styling */
-        .forgot-link {
-            text-align: center;
-            margin-top: 15px;
-            color: #00ffc8;
-            cursor: pointer;
-            font-size: 14px;
-            text-decoration: underline;
-        }
-        
-        .forgot-link:hover {
-            color: #ff7eb3;
-        }
-        
-        .recovery-form {
-            background: rgba(0,0,0,0.3);
-            padding: 20px;
-            border-radius: 10px;
-            margin-top: 20px;
-            border: 1px solid rgba(255,126,179,0.3);
-        }
-        
-        .recovery-option {
-            background: rgba(255,126,179,0.1);
-            padding: 15px;
-            border-radius: 8px;
-            margin-bottom: 15px;
-            cursor: pointer;
-            transition: all 0.3s;
-        }
-        
-        .recovery-option:hover {
-            background: rgba(255,126,179,0.2);
-            transform: translateX(5px);
-        }
-        
-        .back-link {
-            color: #ff7eb3;
-            cursor: pointer;
-            margin-top: 15px;
-            display: inline-block;
-        }
-        
-        .back-link:hover {
-            text-decoration: underline;
-        }
-    </style>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
 </head>
 
 <body>
@@ -131,7 +24,7 @@
             <div class="form-group">
                 <input type="password" id="login-password" placeholder="Password" required>
             </div>
-            <button onclick="pythonLogin()" class="eye-catchy-btn">Login</button>
+            <button onclick="login()" class="eye-catchy-btn">Login</button>
             
             <!-- Forgot Password Link -->
             <p class="forgot-link" onclick="showForgotPassword()">
@@ -194,14 +87,8 @@
                 <div class="form-group full-width">
                     <input type="tel" id="reg-phone" placeholder="Phone No. (Optional)">
                 </div>
-                <div class="form-group full-width">
-                    <label for="reg-documents" class="file-label">
-                        <i class="fas fa-upload"></i> Upload Documents (Max 3, Optional)
-                    </label>
-                    <input type="file" id="reg-documents" multiple accept=".pdf,.doc,.docx,.jpg,.png">
-                </div>
             </div>
-            <button onclick="pythonRegister()" class="eye-catchy-btn full-width">Register</button>
+            <button onclick="register()" class="eye-catchy-btn full-width">Register</button>
             <p class="toggle-link" onclick="toggleAuthForm('login')">Already registered? Login here.</p>
         </div>
         
@@ -226,14 +113,6 @@
                     <h4><i class="fas fa-redo"></i> Reset Password</h4>
                     <p style="color: rgba(255,255,255,0.7); font-size: 14px;">
                         Reset your password using your registered ID and email
-                    </p>
-                </div>
-                
-                <!-- Option 3: Contact Admin -->
-                <div class="recovery-option" onclick="contactAdminForRecovery()">
-                    <h4><i class="fas fa-headset"></i> Contact Administrator</h4>
-                    <p style="color: rgba(255,255,255,0.7); font-size: 14px;">
-                        Directly contact the system administrator for help
                     </p>
                 </div>
             </div>
@@ -287,27 +166,30 @@
             <div id="user-counts-display">
                 <p>
                     <span class="stat-item">
-                        <i class="fas fa-globe"></i> Global Users: 
-                        <span id="global-user-count">0</span>
+                        <i class="fas fa-users"></i> Total Users: 
+                        <span id="total-user-count">0</span>
                     </span>
                     <span class="stat-item">
-                        <i class="fas fa-laptop"></i> Local Users: 
-                        <span id="local-user-count">0</span>
+                        <i class="fas fa-user-check"></i> Active Now: 
+                        <span id="active-user-count">0</span>
                     </span>
                     <span class="stat-item">
-                        <i class="fas fa-eye"></i> Live Viewers: 
-                        <span id="live-viewers">0</span>
+                        <i class="fas fa-calendar-day"></i> Today: 
+                        <span id="today-user-count">0</span>
                     </span>
                 </p>
             </div>
             <button onclick="showInstructions()" class="eye-catchy-btn small-btn">
                 <i class="fas fa-info-circle"></i> Instructions
             </button>
-            <button onclick="pythonShowUserList()" class="admin-only eye-catchy-btn small-btn">
-                <i class="fas fa-users"></i> View User Data
+            <button onclick="showUserList()" class="admin-only eye-catchy-btn small-btn">
+                <i class="fas fa-users"></i> View All Users
             </button>
             <button onclick="showDetailedStats()" class="admin-only eye-catchy-btn small-btn">
-                <i class="fas fa-chart-bar"></i> Detailed Stats
+                <i class="fas fa-chart-bar"></i> Statistics
+            </button>
+            <button onclick="exportUserData()" class="admin-only eye-catchy-btn small-btn">
+                <i class="fas fa-download"></i> Export Data
             </button>
         </div>
 
@@ -320,7 +202,7 @@
         </div>
 
         <!-- Logout Button -->
-        <button onclick="pythonLogout()" id="logout-btn" class="eye-catchy-btn">
+        <button onclick="logout()" id="logout-btn" class="eye-catchy-btn">
             <i class="fas fa-sign-out-alt"></i> Logout
         </button>
     </div>
@@ -338,6 +220,21 @@
         <button onclick="closePopup()" class="eye-catchy-btn">Close</button>
     </div>
 
+    <!-- User Details Modal -->
+    <div id="user-details-modal" class="user-details-modal">
+        <div class="user-details-content">
+            <div class="user-details-header">
+                <h3><i class="fas fa-user-circle"></i> User Details</h3>
+                <button onclick="closeUserDetails()" class="close-btn">&times;</button>
+            </div>
+            <div class="user-details-body">
+                <div id="user-details-content">
+                    <!-- User details will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- Admin Panel Modal -->
     <div id="admin-panel-modal" class="modal hidden">
         <div class="modal-content">
@@ -348,18 +245,13 @@
             <div class="modal-body">
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <h4><i class="fas fa-globe"></i> Global Statistics</h4>
-                        <div class="stat-value" id="admin-global-count">0</div>
-                        <p>Total registered users worldwide</p>
+                        <h4><i class="fas fa-users"></i> Total Users</h4>
+                        <div class="stat-value" id="admin-total-count">0</div>
+                        <p>All registered users</p>
                     </div>
                     <div class="stat-card">
-                        <h4><i class="fas fa-laptop"></i> Local Statistics</h4>
-                        <div class="stat-value" id="admin-local-count">0</div>
-                        <p>Users registered on this device</p>
-                    </div>
-                    <div class="stat-card">
-                        <h4><i class="fas fa-eye"></i> Live Activity</h4>
-                        <div class="stat-value" id="admin-active-now">0</div>
+                        <h4><i class="fas fa-eye"></i> Active Now</h4>
+                        <div class="stat-value" id="admin-active-count">0</div>
                         <p>Currently active users</p>
                     </div>
                     <div class="stat-card">
@@ -367,25 +259,30 @@
                         <div class="stat-value" id="admin-today-count">0</div>
                         <p>New users today</p>
                     </div>
+                    <div class="stat-card">
+                        <h4><i class="fas fa-graduation-cap"></i> Departments</h4>
+                        <div class="stat-value" id="admin-dept-count">0</div>
+                        <p>Different departments</p>
+                    </div>
                 </div>
                 
                 <div class="charts-section">
-                    <h4><i class="fas fa-chart-bar"></i> User Growth</h4>
+                    <h4><i class="fas fa-chart-bar"></i> Department Distribution</h4>
                     <div class="chart-container">
-                        <canvas id="user-growth-chart"></canvas>
+                        <canvas id="dept-distribution-chart"></canvas>
                     </div>
                 </div>
                 
                 <div class="user-list-section">
-                    <h4><i class="fas fa-users"></i> Recent Global Users</h4>
+                    <h4><i class="fas fa-users"></i> Recent Registrations</h4>
                     <div id="recent-users-list" class="user-list">
                         <!-- Recent users will be populated here -->
                     </div>
                 </div>
                 
                 <div class="admin-actions">
-                    <button onclick="pythonExportData()" class="eye-catchy-btn">
-                        <i class="fas fa-download"></i> Export Data
+                    <button onclick="exportUserData()" class="eye-catchy-btn">
+                        <i class="fas fa-download"></i> Export All Data
                     </button>
                     <button onclick="refreshStats()" class="eye-catchy-btn">
                         <i class="fas fa-sync-alt"></i> Refresh Stats
@@ -451,306 +348,8 @@
             </div>
         </div>
     </div>
-    
-    <!-- Simplified Python Backend Connection Script -->
-    <script>
-    // Python Backend Configuration
-    const BACKEND_URL = 'http://localhost:5000/api';
-    let backendConnected = false;
-    
-    // Check backend connection
-    async function checkBackend() {
-        try {
-            const response = await fetch(`${BACKEND_URL}/health`);
-            const data = await response.json();
-            backendConnected = data.status === 'healthy';
-            return backendConnected;
-        } catch (error) {
-            backendConnected = false;
-            return false;
-        }
-    }
-    
-    // Forgot Password Functions
-    function showForgotPassword() {
-        document.getElementById('login-form').classList.add('hidden');
-        document.getElementById('forgot-form').classList.remove('hidden');
-    }
-    
-    function backToLogin() {
-        document.getElementById('forgot-form').classList.add('hidden');
-        document.getElementById('login-form').classList.remove('hidden');
-    }
-    
-    function recoverUserId() {
-        const email = prompt("Enter your registered email address:");
-        if (!email) return;
-        
-        alert(`ID recovery instructions have been sent to: ${email}\n\nIf you don't receive an email within 5 minutes, please contact the administrator.`);
-        
-        // Log this attempt
-        console.log(`ID recovery requested for email: ${email}`);
-        
-        // Show success message
-        showPopup("Recovery instructions sent to your email!");
-        backToLogin();
-    }
-    
-    function resetPassword() {
-        const userId = prompt("Enter your 7-digit ID:");
-        if (!userId || userId.length !== 7) {
-            alert("Please enter a valid 7-digit ID.");
-            return;
-        }
-        
-        const email = prompt("Enter your registered email address:");
-        if (!email) return;
-        
-        alert(`Password reset link has been sent to: ${email}\n\nCheck your email and follow the instructions to reset your password.`);
-        
-        // Log this attempt
-        console.log(`Password reset requested for ID: ${userId}, Email: ${email}`);
-        
-        // Show success message
-        showPopup("Password reset link sent to your email!");
-        backToLogin();
-    }
-    
-    function contactAdminForRecovery() {
-        const subject = "Account Recovery Request - EduHub";
-        const body = `Hello Administrator,\n\nI need help recovering my EduHub account.\n\nPlease provide:\n1. My full name\n2. My registration number\n3. My college name\n\nThank you!`;
-        
-        // Open email to admin
-        window.location.href = `mailto:deboneel1998@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-        
-        showPopup("Opening email client to contact administrator...");
-        backToLogin();
-    }
-    
-    // Python Registration
-    async function pythonRegister() {
-        if (!await checkBackend()) {
-            showError("Backend offline. Using local registration.");
-            if (typeof register === 'function') register();
-            return;
-        }
-        
-        const formData = {
-            id: document.getElementById("reg-id")?.value.trim(),
-            fullName: document.getElementById("reg-fullname")?.value.trim(),
-            nickname: document.getElementById("reg-nickname")?.value.trim(),
-            regNo: document.getElementById("reg-regno")?.value.trim(),
-            college: document.getElementById("reg-college")?.value.trim(),
-            department: document.getElementById("reg-department")?.value,
-            email: document.getElementById("reg-email")?.value.trim(),
-            password: document.getElementById("reg-password")?.value.trim(),
-            hometown: document.getElementById("reg-hometown")?.value.trim(),
-            hallName: document.getElementById("reg-hallname")?.value.trim(),
-            supervisor: document.getElementById("reg-supervisor")?.value.trim(),
-            phone: document.getElementById("reg-phone")?.value.trim()
-        };
-        
-        if (formData.department === 'Others') {
-            const otherDept = document.getElementById("reg-other-department")?.value.trim();
-            if (otherDept) formData.otherDepartment = otherDept;
-        }
-        
-        try {
-            const response = await fetch(`${BACKEND_URL}/register`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify(formData)
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                if (typeof register === 'function') register();
-                showPopup("Registration successful! (Backend Connected)");
-            } else {
-                showError(result.error || "Registration failed!");
-            }
-        } catch (error) {
-            showError("Backend error. Using local storage.");
-            if (typeof register === 'function') register();
-        }
-    }
-    
-    // Python Login
-    async function pythonLogin() {
-        if (!await checkBackend()) {
-            showError("Backend offline. Using local login.");
-            if (typeof login === 'function') login();
-            return;
-        }
-        
-        const username = document.getElementById("login-username")?.value.trim();
-        const password = document.getElementById("login-password")?.value.trim();
-        
-        try {
-            const response = await fetch(`${BACKEND_URL}/login`, {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ username, password })
-            });
-            
-            const result = await response.json();
-            
-            if (result.success) {
-                if (window.currentUserRole !== undefined) {
-                    window.currentUserRole = result.is_admin ? 'admin' : 'user';
-                }
-                
-                if (typeof login === 'function') login();
-                showPopup(`Welcome ${result.nickname}! (Backend Connected)`);
-            } else {
-                showError(result.error || "Invalid credentials!");
-            }
-        } catch (error) {
-            showError("Backend error. Using local login.");
-            if (typeof login === 'function') login();
-        }
-    }
-    
-    // Python Show User List
-    async function pythonShowUserList() {
-        if (currentUserRole !== 'admin') {
-            alert("Access Denied! Admin Only Feature.");
-            return;
-        }
-        
-        if (!await checkBackend()) {
-            if (typeof showUserList === 'function') showUserList();
-            return;
-        }
-        
-        try {
-            const response = await fetch(`${BACKEND_URL}/users`);
-            const data = await response.json();
-            
-            if (data.success) {
-                const content = document.getElementById("content");
-                if (!content) return;
-                
-                let html = `<h2 style="color:#ff7eb3; margin-bottom: 20px;">
-                              Registered Users (${data.total}) - Python Backend</h2>`;
-                
-                if (data.users.length > 0) {
-                    html += `<div style="overflow-x: auto;">
-                        <table style="width:100%; border-collapse:collapse; margin-top:15px; background: rgba(0,0,0,0.3);">
-                            <thead>
-                                <tr style="background:rgba(255,255,255,0.1)">
-                                    <th style="padding:12px; text-align:left;">ID</th>
-                                    <th style="padding:12px; text-align:left;">Name</th>
-                                    <th style="padding:12px; text-align:left;">Nickname</th>
-                                    <th style="padding:12px; text-align:left;">College</th>
-                                    <th style="padding:12px; text-align:left;">Department</th>
-                                    <th style="padding:12px; text-align:left;">Registration Date</th>
-                                </tr>
-                            </thead>
-                            <tbody>`;
-                    
-                    data.users.forEach(u => {
-                        html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
-                            <td style="padding:12px;">${u.id}</td>
-                            <td style="padding:12px;">${u.full_name}</td>
-                            <td style="padding:12px;">${u.nickname || '-'}</td>
-                            <td style="padding:12px;">${u.college}</td>
-                            <td style="padding:12px;">${u.department}</td>
-                            <td style="padding:12px;">${new Date(u.registration_date).toLocaleDateString()}</td>
-                        </tr>`;
-                    });
-                    
-                    html += `</tbody></table></div>`;
-                } else {
-                    html += "<p style='color: rgba(255,255,255,0.6);'>No users registered yet.</p>";
-                }
-                
-                content.innerHTML = html;
-            }
-        } catch (error) {
-            if (typeof showUserList === 'function') showUserList();
-        }
-    }
-    
-    // Python Logout
-    async function pythonLogout() {
-        await checkBackend();
-        if (typeof logout === 'function') logout();
-    }
-    
-    // Python Export Data
-    async function pythonExportData() {
-        if (currentUserRole !== 'admin') {
-            alert("Access Denied! Admin Only Feature.");
-            return;
-        }
-        
-        if (!await checkBackend()) {
-            if (typeof exportLocalData === 'function') exportLocalData();
-            return;
-        }
-        
-        try {
-            const response = await fetch(`${BACKEND_URL}/export-users`);
-            const data = await response.json();
-            
-            if (data.success) {
-                const blob = new Blob([data.csv], { type: 'text/csv' });
-                const url = window.URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = data.filename;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                showPopup('Data exported from Python backend!');
-            }
-        } catch (error) {
-            if (typeof exportLocalData === 'function') exportLocalData();
-        }
-    }
-    
-    // Update stats from backend
-    async function updateBackendStats() {
-        if (!await checkBackend()) return;
-        
-        try {
-            const response = await fetch(`${BACKEND_URL}/stats`);
-            const data = await response.json();
-            
-            if (data.success) {
-                const globalCount = document.getElementById('global-user-count');
-                const adminGlobalCount = document.getElementById('admin-global-count');
-                const todayCount = document.getElementById('admin-today-count');
-                
-                if (globalCount) globalCount.textContent = data.stats.total_users;
-                if (adminGlobalCount) adminGlobalCount.textContent = data.stats.total_users;
-                if (todayCount) todayCount.textContent = data.stats.today_users;
-            }
-        } catch (error) {
-            console.log("Failed to update backend stats");
-        }
-    }
-    
-    // Initialize backend on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        checkBackend();
-        updateBackendStats();
-        setInterval(checkBackend, 10000);
-        setInterval(updateBackendStats, 30000);
-    });
-    
-    window.pythonRegister = pythonRegister;
-    window.pythonLogin = pythonLogin;
-    window.pythonLogout = pythonLogout;
-    window.pythonShowUserList = pythonShowUserList;
-    window.pythonExportData = pythonExportData;
-    window.showForgotPassword = showForgotPassword;
-    window.backToLogin = backToLogin;
-    </script>
-    
-    <!-- Your Existing JavaScript -->
-    <script src="./script.js"></script>
+
+    <!-- JavaScript Files -->
+    <script src="script.js"></script>
 </body>
 </html>

@@ -6,18 +6,17 @@ const ADMIN_PASSWORD = "sotorupa72";
 let registeredUsers = JSON.parse(localStorage.getItem('registeredUsers')) || {};
 let currentUserRole = 'user';
 let currentUserNickname = '';
-let currentTrack = 0;
-let isMusicPlaying = false;
 let isDayMode = false;
-let audioElement = null;
 let db = null;
-let analytics = null;
 let userChart = null;
-let globalUserStats = {
+let deptChart = null;
+
+// User statistics
+let userStats = {
     totalUsers: 0,
+    activeUsers: 0,
     todayUsers: 0,
-    activeNow: 0,
-    userGrowth: []
+    departments: {}
 };
 
 // Educational Courses Data with Google Drive Links
@@ -163,225 +162,7 @@ const agQuotes = [
     { text: "জলের এক ফোঁটাও যেন বৃথা না যায় - সেচ প্রকৌশলের মূলমন্ত্র", author: "Water Management Expert" }
 ];
 
-// ==================== FIREBASE INITIALIZATION ====================
-function initializeFirebase() {
-    const firebaseConfig = {
-        apiKey: "AIzaSyAYSVt4WnK7GiqocyBGJ5B0LvBA0AGfsE0",
-        authDomain: "aet-website-88e0f.firebaseapp.com",
-        projectId: "aet-website-88e0f",
-        storageBucket: "aet-website-88e0f.firebasestorage.app",
-        messagingSenderId: "1035844272124",
-        appId: "1:1035844272124:web:68c1735e0e3e236a727c79"
-    };
-
-    try {
-        // Initialize Firebase
-        if (!firebase.apps.length) {
-            firebase.initializeApp(firebaseConfig);
-        }
-        
-        db = firebase.firestore();
-        console.log("✅ Firebase initialized successfully!");
-        
-        // Start tracking
-        trackUserActivity();
-        setupRealtimeListeners();
-        
-    } catch (error) {
-        console.error("❌ Firebase initialization failed:", error);
-    }
-}
-
-// ==================== USER ACTIVITY TRACKING ====================
-async function trackUserActivity() {
-    if (!db) return;
-    
-    const userId = getOrCreateGlobalUserId();
-    const userAgent = navigator.userAgent;
-    const screenRes = `${window.screen.width}x${window.screen.height}`;
-    const referrer = document.referrer || 'direct';
-    const pageUrl = window.location.href;
-    
-    try {
-        // Track page view
-        await db.collection('pageViews').add({
-            userId: userId,
-            timestamp: firebase.firestore.FieldValue.serverTimestamp(),
-            userAgent: userAgent,
-            screenResolution: screenRes,
-            referrer: referrer,
-            pageUrl: pageUrl
-        });
-        
-        // Update user's last activity
-        await db.collection('users').doc(userId).set({
-            lastActive: firebase.firestore.FieldValue.serverTimestamp(),
-            userAgent: userAgent,
-            screenResolution: screenRes
-        }, { merge: true });
-        
-        // Update active users
-        await updateActiveUsers(userId);
-        
-        console.log("✅ User activity tracked successfully");
-        
-    } catch (error) {
-        console.error("❌ Error tracking user activity:", error);
-    }
-}
-
-function getOrCreateGlobalUserId() {
-    let userId = localStorage.getItem('globalUserId');
-    if (!userId) {
-        userId = 'user_' + Date.now() + '_' + Math.random().toString(36).substr(2, 9);
-        localStorage.setItem('globalUserId', userId);
-        registerGlobalUser(userId);
-    }
-    return userId;
-}
-
-async function registerGlobalUser(userId) {
-    if (!db) return;
-    
-    try {
-        await db.collection('users').doc(userId).set({
-            userId: userId,
-            firstVisit: firebase.firestore.FieldValue.serverTimestamp(),
-            lastVisit: firebase.firestore.FieldValue.serverTimestamp(),
-            totalVisits: 1,
-            userAgent: navigator.userAgent,
-            screenResolution: `${window.screen.width}x${window.screen.height}`
-        });
-        
-        console.log("✅ New global user registered:", userId);
-        updateGlobalStats();
-        
-    } catch (error) {
-        console.error("❌ Error registering global user:", error);
-    }
-}
-
-async function updateActiveUsers(userId) {
-    if (!db) return;
-    
-    try {
-        await db.collection('activeUsers').doc(userId).set({
-            userId: userId,
-            lastActive: firebase.firestore.FieldValue.serverTimestamp(),
-            pageUrl: window.location.href
-        });
-        
-        // Clean up inactive users (older than 5 minutes)
-        const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-        const inactiveUsers = await db.collection('activeUsers')
-            .where('lastActive', '<', fiveMinutesAgo)
-            .get();
-            
-        inactiveUsers.forEach(async (doc) => {
-            await doc.ref.delete();
-        });
-        
-    } catch (error) {
-        console.error("❌ Error updating active users:", error);
-    }
-}
-
-// ==================== REALTIME LISTENERS ====================
-function setupRealtimeListeners() {
-    if (!db) return;
-    
-    // Listen for total users count
-    db.collection('users').onSnapshot((snapshot) => {
-        globalUserStats.totalUsers = snapshot.size;
-        updateUserCountsDisplay();
-        if (currentUserRole === 'admin') {
-            updateAdminPanel();
-        }
-    });
-    
-    // Listen for active users
-    db.collection('activeUsers').onSnapshot((snapshot) => {
-        globalUserStats.activeNow = snapshot.size;
-        updateUserCountsDisplay();
-        if (currentUserRole === 'admin') {
-            updateAdminPanel();
-        }
-    });
-    
-    // Listen for today's users
-    const today = new Date();
-    today.setHours(0, 0, 0, 0);
-    db.collection('users')
-        .where('firstVisit', '>=', today)
-        .onSnapshot((snapshot) => {
-            globalUserStats.todayUsers = snapshot.size;
-            if (currentUserRole === 'admin') {
-                updateAdminPanel();
-            }
-        });
-}
-
-async function updateGlobalStats() {
-    if (!db) return;
-    
-    try {
-        const usersSnapshot = await db.collection('users').get();
-        globalUserStats.totalUsers = usersSnapshot.size;
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const todaySnapshot = await db.collection('users')
-            .where('firstVisit', '>=', today)
-            .get();
-        globalUserStats.todayUsers = todaySnapshot.size;
-        
-        const activeSnapshot = await db.collection('activeUsers').get();
-        globalUserStats.activeNow = activeSnapshot.size;
-        
-        updateUserCountsDisplay();
-        
-    } catch (error) {
-        console.error("❌ Error updating global stats:", error);
-    }
-}
-
-function updateUserCountsDisplay() {
-    const globalCountEl = document.getElementById('global-user-count');
-    const localCountEl = document.getElementById('local-user-count');
-    const liveViewersEl = document.getElementById('live-viewers');
-    
-    if (globalCountEl) {
-        globalCountEl.textContent = globalUserStats.totalUsers;
-    }
-    
-    if (localCountEl) {
-        localCountEl.textContent = Object.keys(registeredUsers).filter(id => id !== ADMIN_ID).length;
-    }
-    
-    if (liveViewersEl) {
-        liveViewersEl.textContent = globalUserStats.activeNow;
-    }
-}
-
-// ==================== INITIAL ADMIN USER ====================
-function initializeAdminUser() {
-    if (!registeredUsers[ADMIN_ID]) {
-        registeredUsers[ADMIN_ID] = {
-            id: ADMIN_ID,
-            fullName: "Admin User",
-            nickname: "Admin",
-            regNo: "ADMIN001",
-            college: "System Administration",
-            department: "ADMIN",
-            email: "admin@eduhub.com",
-            password: ADMIN_PASSWORD,
-            registrationDate: new Date().toISOString()
-        };
-        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
-    }
-}
-
-// ==================== WINDOW ONLOAD ====================
+// ==================== INITIALIZATION ====================
 window.onload = function () {
     // Initialize Firebase
     initializeFirebase();
@@ -389,7 +170,6 @@ window.onload = function () {
     // Initialize admin user
     initializeAdminUser();
     
-    updateAdminView();
     updateClock();
     displayRandomQuote();
     setupEventListeners();
@@ -408,23 +188,51 @@ window.onload = function () {
         document.getElementById("main-container").classList.remove("hidden");
         setupTypingAnimation();
         updateAdminView();
+        updateUserStats();
         
         // Initialize theme
         const savedTheme = localStorage.getItem('theme') || 'night';
         setTheme(savedTheme === 'day');
     } else {
         toggleAuthForm('register');
-        setTheme(true); // Day mode for auth screen
+        setTheme(true);
     }
     
-    // Update global stats every minute
-    setInterval(updateGlobalStats, 60000);
+    // Update stats every 30 seconds
+    setInterval(updateUserStats, 30000);
 };
+
+// ==================== FIREBASE INITIALIZATION ====================
+function initializeFirebase() {
+    const firebaseConfig = {
+        apiKey: "AIzaSyAYSVt4WnK7GiqocyBGJ5B0LvBA0AGfsE0",
+        authDomain: "aet-website-88e0f.firebaseapp.com",
+        projectId: "aet-website-88e0f",
+        storageBucket: "aet-website-88e0f.firebasestorage.app",
+        messagingSenderId: "1035844272124",
+        appId: "1:1035844272124:web:68c1735e0e3e236a727c79"
+    };
+
+    try {
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        
+        db = firebase.firestore();
+        console.log("✅ Firebase initialized successfully!");
+        
+    } catch (error) {
+        console.error("❌ Firebase initialization failed:", error);
+    }
+}
 
 // ==================== EVENT LISTENERS SETUP ====================
 function setupEventListeners() {
     // Theme toggle
-    document.getElementById('theme-toggle-btn').addEventListener('click', toggleTheme);
+    const themeBtn = document.getElementById('theme-toggle-btn');
+    if (themeBtn) {
+        themeBtn.addEventListener('click', toggleTheme);
+    }
     
     // Department select change
     const regDepartment = document.getElementById('reg-department');
@@ -450,26 +258,6 @@ function setupEventListeners() {
     
     // Mouse trail effect
     document.addEventListener('mousemove', createMouseTrail);
-    
-    // Close admin panel when clicking outside
-    document.addEventListener('click', function(event) {
-        const modal = document.getElementById('admin-panel-modal');
-        const modalContent = document.querySelector('.modal-content');
-        const detailedStatsBtn = document.querySelector('button[onclick="showDetailedStats()"]');
-        
-        if (modal && !modal.classList.contains('hidden') && 
-            !modalContent.contains(event.target) && 
-            event.target !== detailedStatsBtn) {
-            closeAdminPanel();
-        }
-    });
-    
-    // Close admin panel with Escape key
-    document.addEventListener('keydown', function(event) {
-        if (event.key === 'Escape') {
-            closeAdminPanel();
-        }
-    });
 }
 
 // ==================== THEME MANAGEMENT ====================
@@ -501,12 +289,108 @@ function setTheme(dayMode) {
     localStorage.setItem('theme', dayMode ? 'day' : 'night');
 }
 
+// ==================== USER STATISTICS ====================
+function updateUserStats() {
+    // Update counts
+    userStats.totalUsers = Object.keys(registeredUsers).length;
+    
+    // Calculate department distribution
+    userStats.departments = {};
+    Object.values(registeredUsers).forEach(user => {
+        if (user.department) {
+            userStats.departments[user.department] = (userStats.departments[user.department] || 0) + 1;
+        }
+    });
+    
+    // Update display
+    document.getElementById('total-user-count').textContent = userStats.totalUsers;
+    document.getElementById('active-user-count').textContent = userStats.activeUsers;
+    document.getElementById('today-user-count').textContent = userStats.todayUsers;
+    
+    // Update admin panel if open
+    if (currentUserRole === 'admin') {
+        document.getElementById('admin-total-count').textContent = userStats.totalUsers;
+        document.getElementById('admin-active-count').textContent = userStats.activeUsers;
+        document.getElementById('admin-today-count').textContent = userStats.todayUsers;
+        document.getElementById('admin-dept-count').textContent = Object.keys(userStats.departments).length;
+        
+        updateDepartmentChart();
+    }
+}
+
+function updateDepartmentChart() {
+    const ctx = document.getElementById('dept-distribution-chart');
+    if (!ctx) return;
+    
+    // Destroy existing chart
+    if (deptChart) {
+        deptChart.destroy();
+    }
+    
+    const departments = Object.keys(userStats.departments);
+    const counts = Object.values(userStats.departments);
+    
+    deptChart = new Chart(ctx.getContext('2d'), {
+        type: 'pie',
+        data: {
+            labels: departments,
+            datasets: [{
+                data: counts,
+                backgroundColor: [
+                    '#ff7eb3',
+                    '#00ffc8',
+                    '#667eea',
+                    '#ffd700',
+                    '#9b59b6',
+                    '#e74c3c',
+                    '#3498db',
+                    '#27ae60'
+                ],
+                borderColor: 'rgba(255, 255, 255, 0.2)',
+                borderWidth: 2
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'right',
+                    labels: {
+                        color: '#fff',
+                        font: {
+                            size: 12
+                        }
+                    }
+                },
+                tooltip: {
+                    backgroundColor: 'rgba(0,0,0,0.8)',
+                    titleColor: '#ff7eb3',
+                    bodyColor: '#fff',
+                    borderColor: '#ff7eb3',
+                    borderWidth: 1
+                }
+            }
+        }
+    });
+}
+
 // ==================== USER MANAGEMENT ====================
-function updateCounts() {
-    const totalUsers = Object.keys(registeredUsers).length;
-    const countDisplay = document.getElementById("user-count-display");
-    if (countDisplay) {
-        countDisplay.innerText = `Total Users: ${totalUsers}`;
+function initializeAdminUser() {
+    if (!registeredUsers[ADMIN_ID]) {
+        registeredUsers[ADMIN_ID] = {
+            id: ADMIN_ID,
+            fullName: "Admin User",
+            nickname: "Admin",
+            regNo: "ADMIN001",
+            college: "System Administration",
+            department: "ADMIN",
+            email: "admin@eduhub.com",
+            password: ADMIN_PASSWORD,
+            registrationDate: new Date().toISOString(),
+            role: "admin"
+        };
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
     }
 }
 
@@ -515,26 +399,87 @@ function updateAdminView() {
     adminOnlyButtons.forEach(btn => {
         btn.style.display = currentUserRole === 'admin' ? 'inline-block' : 'none';
     });
-    updateCounts();
+    updateUserStats();
 }
 
 // ==================== FORM TOGGLE ====================
 function toggleAuthForm(formType) {
     const loginForm = document.getElementById('login-form');
     const registerForm = document.getElementById('registration-form');
+    const forgotForm = document.getElementById('forgot-form');
     const errorMessage = document.getElementById('error-message');
     
-    if (loginForm) loginForm.classList.add('hidden');
-    if (registerForm) registerForm.classList.add('hidden');
-    if (errorMessage) errorMessage.classList.add('hidden');
+    [loginForm, registerForm, forgotForm, errorMessage].forEach(el => {
+        if (el) el.classList.add('hidden');
+    });
 
     if (formType === 'login') {
         if (loginForm) loginForm.classList.remove('hidden');
-        setTheme(false); // Night mode for login
-    } else {
+        setTheme(false);
+    } else if (formType === 'register') {
         if (registerForm) registerForm.classList.remove('hidden');
-        setTheme(true); // Day mode for registration
+        setTheme(true);
     }
+}
+
+// ==================== FORGOT PASSWORD ====================
+function showForgotPassword() {
+    document.getElementById('login-form').classList.add('hidden');
+    document.getElementById('forgot-form').classList.remove('hidden');
+}
+
+function backToLogin() {
+    document.getElementById('forgot-form').classList.add('hidden');
+    document.getElementById('login-form').classList.remove('hidden');
+}
+
+function recoverUserId() {
+    const email = prompt("Enter your registered email address:");
+    if (!email) return;
+    
+    // Find user by email
+    const user = Object.values(registeredUsers).find(u => u.email === email);
+    if (user) {
+        alert(`Your User ID is: ${user.id}\n\nPlease remember this ID for future logins.`);
+    } else {
+        alert("No account found with that email address.\n\nPlease check your email or contact administrator.");
+    }
+    
+    backToLogin();
+}
+
+function resetPassword() {
+    const userId = prompt("Enter your 7-digit ID:");
+    if (!userId || userId.length !== 7) {
+        alert("Please enter a valid 7-digit ID.");
+        return;
+    }
+    
+    const user = registeredUsers[userId];
+    if (!user) {
+        alert("No account found with that ID.");
+        backToLogin();
+        return;
+    }
+    
+    const email = prompt("Enter your registered email address:");
+    if (!email) return;
+    
+    if (user.email === email) {
+        const newPassword = prompt("Enter your new password (min 6 characters):");
+        if (newPassword && newPassword.length >= 6) {
+            user.password = newPassword;
+            registeredUsers[userId] = user;
+            localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+            alert("✅ Password reset successful!\n\nYou can now login with your new password.");
+        } else {
+            alert("Password must be at least 6 characters long.");
+        }
+    } else {
+        alert("Email does not match our records.\n\nPlease enter the correct email address.");
+    }
+    
+    backToLogin();
 }
 
 // ==================== REGISTRATION ====================
@@ -553,7 +498,6 @@ function register() {
     const hallName = document.getElementById("reg-hallname")?.value.trim();
     const supervisor = document.getElementById("reg-supervisor")?.value.trim();
     const phone = document.getElementById("reg-phone")?.value.trim();
-    const files = document.getElementById("reg-documents")?.files || [];
 
     // Validation
     if (!id || !fullName || !nickname || !regNo || !college || !department || !password || !confirmPassword) {
@@ -568,11 +512,6 @@ function register() {
     
     if (password !== confirmPassword) {
         showError("Passwords do not match!");
-        return;
-    }
-    
-    if (files.length > 3) {
-        showError("Maximum 3 documents allowed!");
         return;
     }
     
@@ -595,8 +534,10 @@ function register() {
         hallName,
         supervisor,
         phone,
-        documentCount: files.length,
-        registrationDate: new Date().toISOString()
+        registrationDate: new Date().toISOString(),
+        lastLogin: new Date().toISOString(),
+        loginCount: 1,
+        role: "user"
     };
 
     localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
@@ -617,7 +558,8 @@ function register() {
     playWelcomeSound();
     showPopup("Registration Successful! Welcome to EduHub.");
     updateAdminView();
-    setTheme(false); // Switch to night mode after registration
+    updateUserStats();
+    setTheme(false);
 }
 
 // ==================== LOGIN ====================
@@ -634,6 +576,13 @@ function login() {
     } else if (user && user.password === password) {
         currentUserRole = 'user';
         currentUserNickname = user.nickname || user.fullName;
+        
+        // Update user login stats
+        user.lastLogin = new Date().toISOString();
+        user.loginCount = (user.loginCount || 0) + 1;
+        registeredUsers[username] = user;
+        localStorage.setItem('registeredUsers', JSON.stringify(registeredUsers));
+        
         loginSuccess(username, user.nickname || user.fullName);
     } else {
         showError("Invalid ID or Password!");
@@ -653,11 +602,19 @@ function loginSuccess(username, nickname) {
     playWelcomeSound();
     showPopup(`Welcome back, ${nickname}!`);
     updateAdminView();
-    setTheme(false); // Switch to night mode after login
+    updateUserStats();
+    setTheme(false);
+    
+    // Track active user
+    userStats.activeUsers++;
+    updateUserStats();
 }
 
 // ==================== LOGOUT ====================
 function logout() {
+    userStats.activeUsers = Math.max(0, userStats.activeUsers - 1);
+    updateUserStats();
+    
     localStorage.removeItem('currentUser');
     currentUserRole = 'user';
     currentUserNickname = '';
@@ -665,10 +622,6 @@ function logout() {
     document.getElementById("main-container").classList.add("hidden");
     toggleAuthForm('login');
     updateAdminView();
-    if (isMusicPlaying && audioElement) {
-        audioElement.pause();
-        isMusicPlaying = false;
-    }
 }
 
 // ==================== CONTENT DISPLAY ====================
@@ -954,6 +907,9 @@ function setupDiaryListeners() {
 }
 
 // ==================== MUSIC PLAYER ====================
+let currentTrack = 0;
+let isMusicPlaying = false;
+
 function displayMusicPlayer() {
     const content = document.getElementById("content");
     if (!content) return;
@@ -1020,8 +976,7 @@ function displayMusicPlayer() {
 }
 
 function toggleMusicPlay() {
-    if (isMusicPlaying && audioElement) {
-        audioElement.pause();
+    if (isMusicPlaying) {
         isMusicPlaying = false;
     } else {
         // Open YouTube link instead of trying to play audio directly
@@ -1196,45 +1151,177 @@ function showUserList() {
     const content = document.getElementById("content");
     if (!content) return;
     
-    const users = Object.values(registeredUsers);
+    const users = Object.values(registeredUsers).filter(u => u.id !== ADMIN_ID);
 
-    let html = `<h2 style="color:#ff7eb3; margin-bottom: 20px;">Registered Users (${users.length})</h2>`;
+    let html = `
+        <h2 style="color:#ff7eb3; margin-bottom: 20px;">
+            <i class="fas fa-users"></i> Registered Users (${users.length})
+        </h2>
+        
+        <div class="user-stats-cards">
+            <div class="user-stat-card">
+                <div class="user-stat-value">${users.length}</div>
+                <div class="user-stat-label">Total Users</div>
+            </div>
+            <div class="user-stat-card">
+                <div class="user-stat-value">${Object.keys(userStats.departments).length}</div>
+                <div class="user-stat-label">Departments</div>
+            </div>
+            <div class="user-stat-card">
+                <div class="user-stat-value">${userStats.todayUsers}</div>
+                <div class="user-stat-label">Today's Users</div>
+            </div>
+        </div>`;
+    
     if (users.length === 0) {
-        content.innerHTML = html + "<p style='color: rgba(255,255,255,0.6);'>No users registered yet.</p>";
+        content.innerHTML = html + "<p style='color: rgba(255,255,255,0.6); text-align: center; padding: 40px;'>No users registered yet.</p>";
         return;
     }
 
-    html += `<div style="overflow-x: auto;">
-        <table style="width:100%; border-collapse:collapse; margin-top:15px; background: rgba(0,0,0,0.3);">
-            <thead>
-                <tr style="background:rgba(255,255,255,0.1)">
-                    <th style="padding:12px; text-align:left;">ID</th>
-                    <th style="padding:12px; text-align:left;">Name</th>
-                    <th style="padding:12px; text-align:left;">Nickname</th>
-                    <th style="padding:12px; text-align:left;">College</th>
-                    <th style="padding:12px; text-align:left;">Department</th>
-                    <th style="padding:12px; text-align:left;">Registration Date</th>
-                </tr>
-            </thead>
-            <tbody>`;
+    html += `
+        <div class="user-table-container">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Nickname</th>
+                        <th>College</th>
+                        <th>Department</th>
+                        <th>Registration Date</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody>`;
 
-    users.forEach(u => {
-        if (u.id !== ADMIN_ID) { // Don't show admin in user list
-            html += `<tr style="border-bottom:1px solid rgba(255,255,255,0.1)">
-                <td style="padding:12px;">${u.id}</td>
-                <td style="padding:12px;">${u.fullName}</td>
-                <td style="padding:12px;">${u.nickname || '-'}</td>
-                <td style="padding:12px;">${u.college}</td>
-                <td style="padding:12px;">${u.department}</td>
-                <td style="padding:12px;">${new Date(u.registrationDate).toLocaleDateString()}</td>
-            </tr>`;
-        }
-    });
+    users.sort((a, b) => new Date(b.registrationDate) - new Date(a.registrationDate))
+        .forEach(u => {
+            html += `
+                <tr>
+                    <td><strong>${u.id}</strong></td>
+                    <td>${u.fullName}</td>
+                    <td>${u.nickname || '-'}</td>
+                    <td>${u.college}</td>
+                    <td><span style="background: rgba(255,126,179,0.2); padding: 3px 8px; border-radius: 4px; font-size: 12px;">${u.department}</span></td>
+                    <td>${new Date(u.registrationDate).toLocaleDateString()}</td>
+                    <td>
+                        <button onclick="viewUserDetails('${u.id}')" class="eye-catchy-btn user-action-btn">
+                            <i class="fas fa-eye"></i> View
+                        </button>
+                    </td>
+                </tr>`;
+        });
+    
     html += `</tbody></table></div>`;
     content.innerHTML = html;
 }
 
-// ==================== ADMIN PANEL FUNCTIONS ====================
+// ==================== USER DETAILS VIEW ====================
+function viewUserDetails(userId) {
+    const user = registeredUsers[userId];
+    if (!user) {
+        alert("User not found!");
+        return;
+    }
+
+    const modal = document.getElementById('user-details-modal');
+    const content = document.getElementById('user-details-content');
+    
+    const html = `
+        <div class="user-info-grid">
+            <div class="user-info-card">
+                <h4><i class="fas fa-id-card"></i> Basic Information</h4>
+                <div class="user-info-item">
+                    <span class="user-info-label">ID:</span>
+                    <span class="user-info-value">${user.id}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Full Name:</span>
+                    <span class="user-info-value">${user.fullName}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Nickname:</span>
+                    <span class="user-info-value">${user.nickname || 'Not set'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Registration No:</span>
+                    <span class="user-info-value">${user.regNo}</span>
+                </div>
+            </div>
+            
+            <div class="user-info-card">
+                <h4><i class="fas fa-university"></i> Academic Information</h4>
+                <div class="user-info-item">
+                    <span class="user-info-label">College:</span>
+                    <span class="user-info-value">${user.college}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Department:</span>
+                    <span class="user-info-value">${user.department}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Supervisor:</span>
+                    <span class="user-info-value">${user.supervisor || 'Not specified'}</span>
+                </div>
+            </div>
+            
+            <div class="user-info-card">
+                <h4><i class="fas fa-address-book"></i> Contact Information</h4>
+                <div class="user-info-item">
+                    <span class="user-info-label">Email:</span>
+                    <span class="user-info-value">${user.email || 'Not provided'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Phone:</span>
+                    <span class="user-info-value">${user.phone || 'Not provided'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Hometown:</span>
+                    <span class="user-info-value">${user.hometown || 'Not specified'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Hall Name:</span>
+                    <span class="user-info-value">${user.hallName || 'Not specified'}</span>
+                </div>
+            </div>
+            
+            <div class="user-info-card">
+                <h4><i class="fas fa-chart-line"></i> Account Statistics</h4>
+                <div class="user-info-item">
+                    <span class="user-info-label">Registered:</span>
+                    <span class="user-info-value">${new Date(user.registrationDate).toLocaleString()}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Last Login:</span>
+                    <span class="user-info-value">${user.lastLogin ? new Date(user.lastLogin).toLocaleString() : 'Never logged in'}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Login Count:</span>
+                    <span class="user-info-value">${user.loginCount || 0}</span>
+                </div>
+                <div class="user-info-item">
+                    <span class="user-info-label">Role:</span>
+                    <span class="user-info-value">${user.role || 'user'}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div style="text-align: center; margin-top: 30px;">
+            <button onclick="exportSingleUserData('${userId}')" class="eye-catchy-btn">
+                <i class="fas fa-download"></i> Export User Data
+            </button>
+        </div>`;
+    
+    content.innerHTML = html;
+    modal.classList.add('active');
+}
+
+function closeUserDetails() {
+    const modal = document.getElementById('user-details-modal');
+    modal.classList.remove('active');
+}
+
+// ==================== ADMIN PANEL ====================
 function showDetailedStats() {
     if (currentUserRole !== 'admin') {
         alert("Access Denied! Admin Only Feature.");
@@ -1242,15 +1329,11 @@ function showDetailedStats() {
     }
     
     const modal = document.getElementById('admin-panel-modal');
-    if (!modal) {
-        console.error("Admin panel modal not found!");
-        return;
-    }
+    if (!modal) return;
     
     modal.classList.remove('hidden');
     modal.style.display = 'block';
     
-    // Add active class for animation
     setTimeout(() => {
         modal.style.opacity = '1';
     }, 10);
@@ -1269,261 +1352,133 @@ function closeAdminPanel() {
     }, 300);
 }
 
-async function updateAdminPanel() {
-    if (!db) {
-        console.log("Firebase not initialized");
+function updateAdminPanel() {
+    updateUserStats();
+    updateRecentUsers();
+}
+
+function updateRecentUsers() {
+    const recentUsersList = document.getElementById('recent-users-list');
+    if (!recentUsersList) return;
+    
+    const users = Object.values(registeredUsers)
+        .filter(u => u.id !== ADMIN_ID)
+        .sort((a, b) => new Date(b.registrationDate) - new Date(a.registrationDate))
+        .slice(0, 5);
+    
+    if (users.length === 0) {
+        recentUsersList.innerHTML = '<p style="color: rgba(255,255,255,0.6); text-align: center; padding: 20px;">No users registered yet</p>';
         return;
     }
     
-    try {
-        // Update basic stats
-        const globalCountEl = document.getElementById('admin-global-count');
-        const localCountEl = document.getElementById('admin-local-count');
-        const activeNowEl = document.getElementById('admin-active-now');
-        const todayCountEl = document.getElementById('admin-today-count');
-        
-        if (globalCountEl) {
-            globalCountEl.textContent = globalUserStats.totalUsers;
-        }
-        if (localCountEl) {
-            localCountEl.textContent = Object.keys(registeredUsers).filter(id => id !== ADMIN_ID).length;
-        }
-        if (activeNowEl) {
-            activeNowEl.textContent = globalUserStats.activeNow;
-        }
-        if (todayCountEl) {
-            todayCountEl.textContent = globalUserStats.todayUsers;
-        }
-        
-        // Get recent global users
-        const usersSnapshot = await db.collection('users')
-            .orderBy('firstVisit', 'desc')
-            .limit(10)
-            .get();
-        
-        const recentUsersList = document.getElementById('recent-users-list');
-        if (recentUsersList) {
-            recentUsersList.innerHTML = '';
-            
-            if (usersSnapshot.empty) {
-                recentUsersList.innerHTML = '<p style="color: rgba(255,255,255,0.6); text-align: center; padding: 20px;">No global users yet</p>';
-            } else {
-                usersSnapshot.forEach((doc) => {
-                    const user = doc.data();
-                    const userEl = document.createElement('div');
-                    userEl.className = 'recent-user-item';
-                    userEl.innerHTML = `
-                        <div class="user-avatar">
-                            <i class="fas fa-user-circle"></i>
-                        </div>
-                        <div class="user-info">
-                            <div class="user-id">${user.userId.substring(0, 12)}...</div>
-                            <div class="user-time">${formatFirestoreDate(user.firstVisit)}</div>
-                        </div>
-                    `;
-                    recentUsersList.appendChild(userEl);
-                });
-            }
-        }
-        
-        // Update chart
-        updateUserGrowthChart();
-        
-    } catch (error) {
-        console.error("Error updating admin panel:", error);
-    }
-}
-
-function formatFirestoreDate(timestamp) {
-    if (!timestamp) return 'N/A';
-    try {
-        const date = timestamp.toDate();
-        return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
-    } catch {
-        return 'N/A';
-    }
-}
-
-function updateUserGrowthChart() {
-    const ctx = document.getElementById('user-growth-chart');
-    if (!ctx) {
-        console.log("Chart canvas not found");
-        return;
-    }
-    
-    // Destroy existing chart
-    if (userChart) {
-        userChart.destroy();
-    }
-    
-    // Create new chart
-    userChart = new Chart(ctx.getContext('2d'), {
-        type: 'line',
-        data: {
-            labels: generateLast7Days(),
-            datasets: [{
-                label: 'User Growth',
-                data: generateGrowthData(),
-                borderColor: '#ff7eb3',
-                backgroundColor: 'rgba(255, 126, 179, 0.1)',
-                tension: 0.4,
-                fill: true,
-                pointBackgroundColor: '#00ffc8',
-                pointBorderColor: '#fff',
-                pointBorderWidth: 2
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    labels: {
-                        color: '#fff',
-                        font: {
-                            size: 14
-                        }
-                    }
-                },
-                tooltip: {
-                    backgroundColor: 'rgba(0,0,0,0.8)',
-                    titleColor: '#ff7eb3',
-                    bodyColor: '#fff',
-                    borderColor: '#ff7eb3',
-                    borderWidth: 1
-                }
-            },
-            scales: {
-                x: {
-                    ticks: {
-                        color: 'rgba(255,255,255,0.7)'
-                    },
-                    grid: {
-                        color: 'rgba(255,255,255,0.1)'
-                    }
-                },
-                y: {
-                    beginAtZero: true,
-                    ticks: {
-                        color: 'rgba(255,255,255,0.7)'
-                    },
-                    grid: {
-                        color: 'rgba(255,255,255,0.1)'
-                    }
-                }
-            }
-        }
+    let html = '';
+    users.forEach(user => {
+        html += `
+            <div class="recent-user-item" onclick="viewUserDetails('${user.id}')" style="cursor: pointer;">
+                <div class="user-avatar">
+                    <i class="fas fa-user"></i>
+                </div>
+                <div class="user-info">
+                    <div class="user-id">${user.fullName}</div>
+                    <div class="user-time">ID: ${user.id} | ${user.department}</div>
+                    <div class="user-time">${new Date(user.registrationDate).toLocaleDateString()}</div>
+                </div>
+            </div>`;
     });
+    
+    recentUsersList.innerHTML = html;
 }
 
-function generateLast7Days() {
-    const days = [];
-    for (let i = 6; i >= 0; i--) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        days.push(date.toLocaleDateString('en-US', { weekday: 'short' }));
-    }
-    return days;
+function refreshStats() {
+    updateUserStats();
+    showPopup('Statistics refreshed!');
 }
 
-function generateGrowthData() {
-    // Simulate growth data - in real app, fetch from Firebase
-    const base = globalUserStats.totalUsers;
-    return [
-        Math.max(0, base - 30),
-        Math.max(0, base - 25),
-        Math.max(0, base - 20),
-        Math.max(0, base - 15),
-        Math.max(0, base - 10),
-        Math.max(0, base - 5),
-        base
-    ];
-}
-
-async function exportUserData() {
-    if (!db) {
-        showPopup("Firebase not initialized!");
+// ==================== DATA EXPORT ====================
+function exportUserData() {
+    if (currentUserRole !== 'admin') {
+        alert("Access Denied! Admin Only Feature.");
         return;
     }
     
-    try {
-        const usersSnapshot = await db.collection('users').get();
-        const users = [];
-        
-        usersSnapshot.forEach((doc) => {
-            const user = doc.data();
-            users.push({
-                UserID: user.userId,
-                FirstVisit: formatFirestoreDate(user.firstVisit),
-                LastVisit: formatFirestoreDate(user.lastVisit),
-                UserAgent: user.userAgent || 'N/A',
-                ScreenResolution: user.screenResolution || 'N/A'
-            });
-        });
-        
-        if (users.length === 0) {
-            showPopup("No global users to export!");
-            return;
-        }
-        
-        // Convert to CSV
-        const csvContent = [
-            ['UserID', 'FirstVisit', 'LastVisit', 'UserAgent', 'ScreenResolution'],
-            ...users.map(u => [u.UserID, u.FirstVisit, u.LastVisit, u.UserAgent, u.ScreenResolution])
-        ].map(row => row.join(',')).join('\n');
-        
-        // Download CSV
-        const blob = new Blob([csvContent], { type: 'text/csv' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `eduhub-global-users-${new Date().toISOString().split('T')[0]}.csv`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        
-        showPopup('Global user data exported successfully!');
-    } catch (error) {
-        console.error("Error exporting data:", error);
-        showPopup('Error exporting data');
-    }
-}
-
-function exportLocalData() {
     const users = Object.values(registeredUsers).filter(u => u.id !== ADMIN_ID);
     
     if (users.length === 0) {
-        showPopup('No local users to export!');
+        showPopup('No users to export!');
         return;
     }
     
     const csvContent = [
-        ['ID', 'FullName', 'Nickname', 'RegistrationNo', 'College', 'Department', 'Email', 'RegistrationDate'],
-        ...users.map(u => [u.id, u.fullName, u.nickname, u.regNo, u.college, u.department, u.email, u.registrationDate])
-    ].map(row => row.join(',')).join('\n');
+        ['ID', 'Full Name', 'Nickname', 'Registration No', 'College', 'Department', 'Email', 
+         'Phone', 'Hometown', 'Hall Name', 'Supervisor', 'Registration Date', 'Last Login', 'Login Count'],
+        ...users.map(u => [
+            u.id,
+            u.fullName,
+            u.nickname || '',
+            u.regNo,
+            u.college,
+            u.department,
+            u.email || '',
+            u.phone || '',
+            u.hometown || '',
+            u.hallName || '',
+            u.supervisor || '',
+            u.registrationDate,
+            u.lastLogin || '',
+            u.loginCount || 0
+        ])
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
     
     const blob = new Blob([csvContent], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `eduhub-local-users-${new Date().toISOString().split('T')[0]}.csv`;
+    a.download = `eduhub-users-${new Date().toISOString().split('T')[0]}.csv`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     
-    showPopup('Local user data exported successfully!');
+    showPopup('User data exported successfully!');
 }
 
-function refreshStats() {
-    updateGlobalStats();
-    if (userChart) {
-        userChart.destroy();
-        userChart = null;
+function exportSingleUserData(userId) {
+    const user = registeredUsers[userId];
+    if (!user) {
+        showPopup('User not found!');
+        return;
     }
-    updateUserGrowthChart();
-    showPopup('Statistics refreshed!');
+    
+    const csvContent = [
+        ['Field', 'Value'],
+        ['ID', user.id],
+        ['Full Name', user.fullName],
+        ['Nickname', user.nickname || ''],
+        ['Registration No', user.regNo],
+        ['College', user.college],
+        ['Department', user.department],
+        ['Email', user.email || ''],
+        ['Phone', user.phone || ''],
+        ['Hometown', user.hometown || ''],
+        ['Hall Name', user.hallName || ''],
+        ['Supervisor', user.supervisor || ''],
+        ['Registration Date', user.registrationDate],
+        ['Last Login', user.lastLogin || ''],
+        ['Login Count', user.loginCount || 0]
+    ].map(row => row.map(cell => `"${cell}"`).join(',')).join('\n');
+    
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `eduhub-user-${user.id}-${new Date().toISOString().split('T')[0]}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    
+    showPopup('User data exported successfully!');
 }
 
+// ==================== HELPER FUNCTIONS ====================
 function showPopup(msg) {
     const popup = document.getElementById("popup");
     if (!popup) return;
@@ -1538,7 +1493,7 @@ function showPopup(msg) {
     setTimeout(() => {
         popup.style.transform = "translate(-50%, -50%) scale(0)";
         setTimeout(() => popup.style.display = "none", 500);
-    }, 4000);
+    }, 3000);
 }
 
 function showError(msg) {
@@ -1650,10 +1605,10 @@ function showInstructions() {
     
     if (currentUserRole === 'admin') {
         msg += "\n🔧 ADMIN FEATURES:\n";
-        msg += "- View global user statistics\n";
-        msg += "- Track live active users\n";
-        msg += "- Monitor user growth with charts\n";
-        msg += "- Export global and local user data\n";
+        msg += "- View all registered users and their details\n";
+        msg += "- View department-wise statistics\n";
+        msg += "- Export user data as CSV files\n";
+        msg += "- Track user registration and login activity\n";
     }
     
     alert(msg);
@@ -1688,111 +1643,3 @@ window.addEventListener('resize', () => {
     corners[1].left = window.innerWidth - 170;
     corners[2].left = window.innerWidth - 170;
 });
-
-// Clean up when page is closed
-window.addEventListener('beforeunload', () => {
-    const userId = localStorage.getItem('globalUserId');
-    if (userId && db) {
-        // Remove from active users
-        db.collection('activeUsers').doc(userId).delete().catch(() => {});
-    }
-});
-
-// REAL Email Recovery
-async function resetPassword() {
-    const userId = prompt("Enter your 7-digit ID:");
-    if (!userId || userId.length !== 7) {
-        alert("Please enter a valid 7-digit ID.");
-        return;
-    }
-    
-    const email = prompt("Enter your registered email address:");
-    if (!email) return;
-    
-    try {
-        const response = await fetch(`${BACKEND_URL}/send-recovery-email`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ id: userId, email: email })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(`✅ ${result.message}\n\n${result.note || ''}\n\nYour password will be sent to your email.`);
-        } else {
-            alert(`❌ ${result.error}\n\nPlease check your details and try again.`);
-        }
-    } catch (error) {
-        alert("⚠️ Server error. Please try again later or contact administrator.");
-    }
-    
-    backToLogin();
-}
-
-// Real Password Recovery Functions
-async function recoverUserId() {
-    const email = prompt("Enter your registered email address:");
-    if (!email) return;
-    
-    try {
-        const response = await fetch(`${BACKEND_URL}/find-id`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ email: email })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(`✅ ${result.message}\n\nPlease check your email inbox and spam folder.`);
-        } else {
-            alert(`❌ ${result.error}\n\nPlease make sure you entered the correct email.`);
-        }
-    } catch (error) {
-        alert(`⚠️ Connection error. Please try again later or contact administrator:\ndeboneel1998@gmail.com`);
-    }
-    
-    backToLogin();
-}
-
-async function resetPassword() {
-    const userId = prompt("Enter your 7-digit ID:");
-    if (!userId || userId.length !== 7) {
-        alert("Please enter a valid 7-digit ID.");
-        return;
-    }
-    
-    const email = prompt("Enter your registered email address:");
-    if (!email) return;
-    
-    try {
-        const response = await fetch(`${BACKEND_URL}/recover-password`, {
-            method: 'POST',
-            headers: {'Content-Type': 'application/json'},
-            body: JSON.stringify({ id: userId, email: email })
-        });
-        
-        const result = await response.json();
-        
-        if (result.success) {
-            alert(`✅ ${result.message}\n\n${result.note || ''}\n\nYou will receive a temporary password by email.`);
-        } else {
-            alert(`❌ ${result.error}\n\nPlease check your details and try again.`);
-        }
-    } catch (error) {
-        alert(`⚠️ Server error. Please try again later or contact:\ndeboneel1998@gmail.com`);
-    }
-    
-    backToLogin();
-}
-
-function contactAdminForRecovery() {
-    const subject = "Urgent: EduHub Account Recovery Request";
-    const body = `Hello Administrator,\n\nI need help recovering my EduHub account.\n\nMy details:\n1. Full name: \n2. Registration number: \n3. College name: \n4. Department: \n5. Email: \n\nThank you!\n\n(Please reply to this email with assistance)`;
-    
-    window.location.href = `mailto:deboneel1998@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
-    
-    showPopup("Opening email client to contact administrator...");
-    backToLogin();
-}

@@ -110,28 +110,6 @@ body.day-mode {
     border: 2px solid rgba(255, 126, 179, 0.6);
 }
 
-/* File Upload */
-.login-box input[type="file"] { 
-    display: none; 
-}
-
-.file-label {
-    cursor: pointer;
-    background: rgba(255, 255, 255, 0.2) !important;
-    text-align: center;
-    padding: 12px !important;
-    border: 2px dashed #ff7eb3;
-    color: white !important;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 10px;
-}
-
-.file-label:hover {
-    background: rgba(255, 255, 255, 0.3) !important;
-}
-
 /* Eye-Catchy Button Design */
 .eye-catchy-btn {
     background: linear-gradient(45deg, #007bff, #00c6ff);
@@ -593,6 +571,58 @@ nav button.eye-catchy-btn:hover {
     color: #ff7eb3;
 }
 
+/* Social Icons */
+.social-icons {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    margin-top: 20px;
+    flex-wrap: wrap;
+}
+
+.social-icon {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    color: white;
+    transition: transform 0.3s;
+}
+
+.social-icon:hover {
+    transform: translateY(-3px);
+}
+
+.whatsapp-icon {
+    background: #25D366;
+}
+
+.email-icon {
+    background: #EA4335;
+}
+
+.instagram-icon {
+    background: linear-gradient(45deg, #405DE6, #5851DB, #833AB4, #C13584, #E1306C, #FD1D1D);
+}
+
+.linkedin-icon {
+    background: #0077B5;
+}
+
+.facebook-icon {
+    background: #1877F2;
+}
+
+.response-note {
+    text-align: center;
+    margin-top: 15px;
+    color: rgba(255,255,255,0.7);
+    font-size: 13px;
+}
+
 .social-links {
     display: flex;
     justify-content: center;
@@ -827,10 +857,12 @@ nav button.eye-catchy-btn:hover {
     background: rgba(0, 0, 0, 0.8);
     z-index: 10000;
     backdrop-filter: blur(10px);
+    opacity: 0;
+    transition: opacity 0.3s ease;
 }
 
 .modal.hidden {
-    display: none;
+    display: none !important;
 }
 
 .modal-content {
@@ -846,6 +878,18 @@ nav button.eye-catchy-btn:hover {
     overflow: hidden;
     border: 2px solid rgba(255, 126, 179, 0.3);
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+    from {
+        opacity: 0;
+        transform: translate(-50%, -60%);
+    }
+    to {
+        opacity: 1;
+        transform: translate(-50%, -50%);
+    }
 }
 
 .modal-header {
@@ -861,6 +905,9 @@ nav button.eye-catchy-btn:hover {
     color: #ff7eb3;
     font-size: 1.5rem;
     margin: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
 }
 
 .close-btn {
@@ -1059,20 +1106,8 @@ nav button.eye-catchy-btn:hover {
     margin-right: 8px;
 }
 
-#global-user-count {
+#total-user-count, #active-user-count, #today-user-count {
     color: #00ffc8;
-    font-weight: bold;
-    margin-left: 5px;
-}
-
-#local-user-count {
-    color: #ff7eb3;
-    font-weight: bold;
-    margin-left: 5px;
-}
-
-#live-viewers {
-    color: #ffd700;
     font-weight: bold;
     margin-left: 5px;
 }
@@ -1132,8 +1167,55 @@ nav button.eye-catchy-btn:hover {
     }
 }
 
-/* Admin Panel Modal - Fix Display Issues */
-.modal {
+/* Forgot Password Styling */
+.forgot-link {
+    text-align: center;
+    margin-top: 15px;
+    color: #00ffc8;
+    cursor: pointer;
+    font-size: 14px;
+    text-decoration: underline;
+}
+
+.forgot-link:hover {
+    color: #ff7eb3;
+}
+
+.recovery-form {
+    background: rgba(0,0,0,0.3);
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    border: 1px solid rgba(255,126,179,0.3);
+}
+
+.recovery-option {
+    background: rgba(255,126,179,0.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.recovery-option:hover {
+    background: rgba(255,126,179,0.2);
+    transform: translateX(5px);
+}
+
+.back-link {
+    color: #ff7eb3;
+    cursor: pointer;
+    margin-top: 15px;
+    display: inline-block;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+/* User Details Modal */
+.user-details-modal {
     display: none;
     position: fixed;
     top: 0;
@@ -1147,18 +1229,19 @@ nav button.eye-catchy-btn:hover {
     transition: opacity 0.3s ease;
 }
 
-.modal.hidden {
-    display: none !important;
+.user-details-modal.active {
+    display: block;
+    opacity: 1;
 }
 
-.modal-content {
+.user-details-content {
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
     background: linear-gradient(135deg, rgba(30, 30, 46, 0.95), rgba(20, 20, 30, 0.98));
     width: 90%;
-    max-width: 1200px;
+    max-width: 800px;
     max-height: 90vh;
     border-radius: 20px;
     overflow: hidden;
@@ -1167,18 +1250,7 @@ nav button.eye-catchy-btn:hover {
     animation: modalSlideIn 0.3s ease-out;
 }
 
-@keyframes modalSlideIn {
-    from {
-        opacity: 0;
-        transform: translate(-50%, -60%);
-    }
-    to {
-        opacity: 1;
-        transform: translate(-50%, -50%);
-    }
-}
-
-.modal-header {
+.user-details-header {
     background: linear-gradient(90deg, rgba(255, 126, 179, 0.2), rgba(102, 126, 234, 0.2));
     padding: 20px 30px;
     display: flex;
@@ -1187,38 +1259,121 @@ nav button.eye-catchy-btn:hover {
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
-.modal-header h3 {
-    color: #ff7eb3;
-    font-size: 1.5rem;
-    margin: 0;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
-
-.close-btn {
-    background: none;
-    border: none;
-    color: white;
-    font-size: 28px;
-    cursor: pointer;
-    padding: 0;
-    width: 40px;
-    height: 40px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    transition: all 0.3s ease;
-}
-
-.close-btn:hover {
-    background: rgba(255, 126, 179, 0.2);
-    transform: rotate(90deg);
-}
-
-.modal-body {
+.user-details-body {
     padding: 30px;
     overflow-y: auto;
     max-height: calc(90vh - 80px);
+}
+
+.user-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+    margin-bottom: 30px;
+}
+
+.user-info-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 15px;
+    padding: 20px;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-info-card h4 {
+    color: #ffd700;
+    margin-bottom: 15px;
+    font-size: 1.1rem;
+    border-bottom: 2px solid rgba(255, 126, 179, 0.3);
+    padding-bottom: 10px;
+}
+
+.user-info-item {
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+}
+
+.user-info-label {
+    min-width: 120px;
+    color: #ff7eb3;
+    font-weight: bold;
+    font-size: 0.9rem;
+}
+
+.user-info-value {
+    color: rgba(255, 255, 255, 0.9);
+    font-size: 0.95rem;
+    word-break: break-word;
+}
+
+.user-stats-cards {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 15px;
+    margin-bottom: 30px;
+}
+
+.user-stat-card {
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    padding: 15px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.user-stat-value {
+    font-size: 2rem;
+    font-weight: bold;
+    color: #00ffc8;
+    margin-bottom: 5px;
+}
+
+.user-stat-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.85rem;
+}
+
+/* Enhanced User List Table */
+.user-table-container {
+    overflow-x: auto;
+    margin-top: 20px;
+    background: rgba(0, 0, 0, 0.3);
+    border-radius: 10px;
+    padding: 15px;
+}
+
+.user-table {
+    width: 100%;
+    border-collapse: collapse;
+    min-width: 800px;
+}
+
+.user-table th {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 15px;
+    text-align: left;
+    color: #ffd700;
+    font-weight: 600;
+    border-bottom: 2px solid rgba(255, 126, 179, 0.3);
+}
+
+.user-table td {
+    padding: 12px 15px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.user-table tr:hover {
+    background: rgba(255, 255, 255, 0.05);
+}
+
+.user-table .user-action-btn {
+    padding: 6px 12px;
+    font-size: 12px;
+    background: rgba(255, 126, 179, 0.2);
+    border: 1px solid rgba(255, 126, 179, 0.5);
+}
+
+.user-table .user-action-btn:hover {
+    background: rgba(255, 126, 179, 0.4);
 }
