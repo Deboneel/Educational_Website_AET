@@ -1152,7 +1152,7 @@ function submitMovieRequest() {
     if (movieName) {
         const subject = "Educational Content Request";
         const body = `I would like to request educational content about: ${movieName}`;
-        window.location.href = `mailto:rafsan.ocson1@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+        window.location.href = `mailto:deboneel1998@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
         showPopup("Request sent! We'll notify you when content is available.");
     } else {
         alert("Please enter what you're looking for!");
@@ -1697,3 +1697,102 @@ window.addEventListener('beforeunload', () => {
         db.collection('activeUsers').doc(userId).delete().catch(() => {});
     }
 });
+
+// REAL Email Recovery
+async function resetPassword() {
+    const userId = prompt("Enter your 7-digit ID:");
+    if (!userId || userId.length !== 7) {
+        alert("Please enter a valid 7-digit ID.");
+        return;
+    }
+    
+    const email = prompt("Enter your registered email address:");
+    if (!email) return;
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/send-recovery-email`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: userId, email: email })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`✅ ${result.message}\n\n${result.note || ''}\n\nYour password will be sent to your email.`);
+        } else {
+            alert(`❌ ${result.error}\n\nPlease check your details and try again.`);
+        }
+    } catch (error) {
+        alert("⚠️ Server error. Please try again later or contact administrator.");
+    }
+    
+    backToLogin();
+}
+
+// Real Password Recovery Functions
+async function recoverUserId() {
+    const email = prompt("Enter your registered email address:");
+    if (!email) return;
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/find-id`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ email: email })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`✅ ${result.message}\n\nPlease check your email inbox and spam folder.`);
+        } else {
+            alert(`❌ ${result.error}\n\nPlease make sure you entered the correct email.`);
+        }
+    } catch (error) {
+        alert(`⚠️ Connection error. Please try again later or contact administrator:\ndeboneel1998@gmail.com`);
+    }
+    
+    backToLogin();
+}
+
+async function resetPassword() {
+    const userId = prompt("Enter your 7-digit ID:");
+    if (!userId || userId.length !== 7) {
+        alert("Please enter a valid 7-digit ID.");
+        return;
+    }
+    
+    const email = prompt("Enter your registered email address:");
+    if (!email) return;
+    
+    try {
+        const response = await fetch(`${BACKEND_URL}/recover-password`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ id: userId, email: email })
+        });
+        
+        const result = await response.json();
+        
+        if (result.success) {
+            alert(`✅ ${result.message}\n\n${result.note || ''}\n\nYou will receive a temporary password by email.`);
+        } else {
+            alert(`❌ ${result.error}\n\nPlease check your details and try again.`);
+        }
+    } catch (error) {
+        alert(`⚠️ Server error. Please try again later or contact:\ndeboneel1998@gmail.com`);
+    }
+    
+    backToLogin();
+}
+
+function contactAdminForRecovery() {
+    const subject = "Urgent: EduHub Account Recovery Request";
+    const body = `Hello Administrator,\n\nI need help recovering my EduHub account.\n\nMy details:\n1. Full name: \n2. Registration number: \n3. College name: \n4. Department: \n5. Email: \n\nThank you!\n\n(Please reply to this email with assistance)`;
+    
+    window.location.href = `mailto:deboneel1998@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+    
+    showPopup("Opening email client to contact administrator...");
+    backToLogin();
+}
