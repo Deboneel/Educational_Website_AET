@@ -3177,3 +3177,735 @@ nav button.eye-catchy-btn span {
         padding: 20px;
     }
 }
+/* ==================== MOBILE-SPECIFIC ENHANCEMENTS ==================== */
+
+/* Base Mobile Adjustments */
+@media (max-width: 768px) {
+    /* Body & Layout */
+    body {
+        padding: 10px;
+        min-height: 100vh;
+        overflow-x: hidden;
+        -webkit-tap-highlight-color: transparent;
+        -webkit-font-smoothing: antialiased;
+    }
+    
+    /* Login Box Optimization */
+    .login-box {
+        width: 95%;
+        margin-top: 30px;
+        padding: 20px 15px;
+        border-radius: 15px;
+        backdrop-filter: blur(20px);
+        background: rgba(255, 255, 255, 0.12);
+        box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        border: 1px solid rgba(255, 255, 255, 0.18);
+    }
+    
+    .login-box h2 {
+        font-size: 24px;
+        margin-bottom: 20px;
+        text-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+    }
+    
+    /* Form Elements */
+    .login-box input,
+    .login-box select {
+        padding: 14px 12px;
+        font-size: 16px;
+        border-radius: 10px;
+        background: rgba(255, 255, 255, 0.15);
+        border: 2px solid transparent;
+        transition: all 0.3s ease;
+    }
+    
+    .login-box input:focus,
+    .login-box select:focus {
+        background: rgba(255, 255, 255, 0.25);
+        border-color: #ff7eb3;
+        transform: scale(1.02);
+        box-shadow: 0 0 20px rgba(255, 126, 179, 0.3);
+    }
+    
+    /* Eye-Catchy Buttons Mobile Enhancement */
+    .eye-catchy-btn {
+        padding: 14px 20px;
+        font-size: 16px;
+        border-radius: 12px;
+        margin: 8px 0;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        background-size: 200% auto;
+    }
+    
+    .eye-catchy-btn::after {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+        transition: 0.5s;
+    }
+    
+    .eye-catchy-btn:hover::after {
+        left: 100%;
+    }
+    
+    .eye-catchy-btn:active {
+        transform: scale(0.95);
+        box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    /* Navigation Optimization */
+    nav {
+        flex-direction: row;
+        overflow-x: auto;
+        padding: 10px 5px;
+        margin: 15px -10px;
+        gap: 8px;
+        scrollbar-width: none;
+        -ms-overflow-style: none;
+        white-space: nowrap;
+    }
+    
+    nav::-webkit-scrollbar {
+        display: none;
+    }
+    
+    nav button.eye-catchy-btn {
+        flex: 0 0 auto;
+        padding: 12px 18px;
+        font-size: 13px;
+        border-radius: 10px;
+        min-width: 120px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        gap: 6px;
+    }
+    
+    /* Content Area */
+    #content {
+        padding: 20px 15px;
+        margin-top: 15px;
+        border-radius: 15px;
+        backdrop-filter: blur(15px);
+        background: rgba(0, 0, 0, 0.35);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Welcome Section Enhancement */
+    .welcome-section {
+        padding: 30px 15px;
+        text-align: center;
+    }
+    
+    .welcome-section h2 {
+        font-size: 2rem;
+        background: linear-gradient(45deg, #ff7eb3, #ffd700);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        margin-bottom: 15px;
+        text-shadow: 0 2px 15px rgba(255, 126, 179, 0.3);
+    }
+    
+    /* Course Cards Mobile */
+    .course-grid-container {
+        grid-template-columns: 1fr;
+        gap: 20px;
+        margin: 20px 0;
+    }
+    
+    .course-card {
+        border-radius: 15px;
+        overflow: hidden;
+        transform-style: preserve-3d;
+        perspective: 1000px;
+    }
+    
+    .course-card-inner {
+        transform-style: preserve-3d;
+        transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    
+    .course-card:hover .course-card-inner {
+        transform: rotateY(5deg) rotateX(5deg);
+    }
+    
+    /* Article Cards */
+    .article-card {
+        padding: 20px;
+        border-radius: 15px;
+        border-left: 5px solid #ff7eb3;
+        background: linear-gradient(135deg, rgba(255, 126, 179, 0.1), rgba(102, 126, 234, 0.1));
+        transition: all 0.3s ease;
+    }
+    
+    .article-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 15px 30px rgba(255, 126, 179, 0.2);
+    }
+    
+    /* User Stats Mobile */
+    .user-stats {
+        flex-direction: column;
+        gap: 15px;
+        padding: 15px;
+        background: rgba(255, 255, 255, 0.08);
+        border-radius: 15px;
+        margin: 20px 0;
+    }
+    
+    .stat-item {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: 10px;
+        background: rgba(0, 0, 0, 0.2);
+        border-radius: 10px;
+    }
+    
+    /* Diary Section */
+    .diary-area {
+        min-height: 250px;
+        font-size: 16px;
+        padding: 15px;
+        border-radius: 12px;
+        background: rgba(10, 25, 41, 0.9);
+        border: 2px solid #00c6ff;
+    }
+    
+    /* Music Player */
+    .music-player-section .player-controls {
+        flex-wrap: wrap;
+        gap: 10px;
+    }
+    
+    .playlist-item {
+        padding: 15px;
+        border-radius: 12px;
+        background: linear-gradient(135deg, rgba(255, 126, 179, 0.1), rgba(102, 126, 234, 0.1));
+        border: 1px solid rgba(255, 255, 255, 0.1);
+    }
+    
+    /* Modal Mobile */
+    .modal-content {
+        width: 95%;
+        margin: 10px;
+        border-radius: 20px;
+        max-height: 85vh;
+    }
+    
+    .modal-header {
+        padding: 15px 20px;
+    }
+    
+    .modal-header h3 {
+        font-size: 1.3rem;
+    }
+    
+    .modal-body {
+        padding: 20px;
+        max-height: calc(85vh - 60px);
+    }
+    
+    /* Notification Popup */
+    .notification-content {
+        padding: 20px;
+        margin: 10px;
+    }
+    
+    .notification-actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+    
+    .notification-actions button {
+        width: 100%;
+    }
+    
+    /* About Section */
+    #about-section {
+        width: 90vw;
+        right: 5vw;
+        bottom: 100%;
+        max-height: 70vh;
+        overflow-y: auto;
+    }
+    
+    .developer-info {
+        flex-direction: column;
+        text-align: center;
+    }
+    
+    /* Quote Container */
+    #quote-container {
+        margin: 15px 0;
+        padding: 15px;
+        border-radius: 12px;
+        backdrop-filter: blur(10px);
+        background: rgba(0, 0, 0, 0.4);
+        border-left: 4px solid #ff7eb3;
+    }
+    
+    #quote-text {
+        font-size: 1rem;
+        font-style: italic;
+        line-height: 1.5;
+    }
+    
+    /* Theme Toggle */
+    .theme-toggle-container {
+        position: fixed;
+        bottom: 80px;
+        right: 15px;
+        z-index: 1000;
+    }
+    
+    #theme-toggle-btn {
+        padding: 12px 20px;
+        border-radius: 50px;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        background: linear-gradient(45deg, #667eea, #764ba2);
+    }
+    
+    /* Scrollbar Styling for Mobile */
+    ::-webkit-scrollbar {
+        width: 5px;
+    }
+    
+    ::-webkit-scrollbar-thumb {
+        background: linear-gradient(45deg, #ff7eb3, #ff477e);
+        border-radius: 3px;
+    }
+}
+
+/* Extra Small Phones (iPhone SE, Galaxy Fold) */
+@media (max-width: 480px) {
+    /* Body */
+    body {
+        padding: 5px;
+        background-attachment: fixed;
+    }
+    
+    /* Clock Container */
+    .clock-container {
+        top: 5px;
+        left: 5px;
+        padding: 6px 10px;
+        border-radius: 12px;
+        max-width: 110px;
+        backdrop-filter: blur(15px);
+        background: rgba(0, 0, 0, 0.7);
+        border: 1px solid rgba(255, 255, 255, 0.15);
+    }
+    
+    .clock-date {
+        font-size: 9px;
+    }
+    
+    .clock-time {
+        font-size: 13px;
+        font-weight: bold;
+        color: #00ffc8;
+        text-shadow: 0 0 10px rgba(0, 255, 200, 0.3);
+    }
+    
+    /* Login Box */
+    .login-box {
+        width: 98%;
+        margin-top: 20px;
+        padding: 15px 10px;
+        border-radius: 12px;
+    }
+    
+    .login-box h2 {
+        font-size: 22px;
+    }
+    
+    /* Form Grid - Single Column */
+    .form-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+    
+    /* Navigation Buttons */
+    nav {
+        gap: 6px;
+        padding: 8px 4px;
+    }
+    
+    nav button.eye-catchy-btn {
+        padding: 10px 14px;
+        font-size: 12px;
+        min-width: 100px;
+    }
+    
+    nav button.eye-catchy-btn i {
+        font-size: 12px;
+        margin-right: 4px;
+    }
+    
+    /* Content Section */
+    #content {
+        padding: 15px 10px;
+        margin-top: 10px;
+        border-radius: 12px;
+    }
+    
+    /* Headers */
+    h2 {
+        font-size: 1.5rem;
+    }
+    
+    h3 {
+        font-size: 1.3rem;
+    }
+    
+    /* Course Cards */
+    .course-card-content {
+        padding: 15px;
+    }
+    
+    .course-title {
+        font-size: 1.1rem;
+        min-height: 50px;
+    }
+    
+    /* Article Cards */
+    .article-card {
+        padding: 15px;
+    }
+    
+    .article-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .article-actions button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* User Stats */
+    .user-stats {
+        padding: 10px;
+        gap: 10px;
+    }
+    
+    #user-counts-display {
+        padding: 10px 15px;
+        border-radius: 20px;
+    }
+    
+    /* Diary */
+    .diary-area {
+        min-height: 200px;
+        font-size: 14px;
+        padding: 12px;
+    }
+    
+    .diary-controls {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .diary-controls button {
+        width: 100%;
+        justify-content: center;
+    }
+    
+    /* Music Player */
+    .music-player-section > div {
+        grid-template-columns: 1fr;
+        gap: 15px;
+    }
+    
+    .player-controls button {
+        padding: 12px 20px;
+        font-size: 14px;
+    }
+    
+    /* Modal */
+    .modal-content {
+        width: 98%;
+        margin: 5px;
+        border-radius: 15px;
+    }
+    
+    /* Resource Links */
+    .resource-link {
+        width: 100%;
+        margin: 5px 0;
+        justify-content: center;
+        padding: 12px 15px;
+    }
+    
+    /* Social Icons */
+    .social-icons {
+        gap: 10px;
+    }
+    
+    .social-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    /* Welcome Message */
+    .welcome-message {
+        font-size: 1.3rem;
+        padding: 8px;
+        min-height: 50px;
+    }
+    
+    /* Nebula Light Adjustment */
+    #nebulaLight {
+        width: 100px;
+        height: 100px;
+        filter: blur(30px);
+    }
+    
+    /* Quote Container */
+    #quote-container {
+        padding: 12px;
+        margin: 10px 0;
+    }
+    
+    /* Form Inputs */
+    .login-box input,
+    .login-box select {
+        font-size: 14px;
+        padding: 12px 10px;
+    }
+    
+    /* Toggle Links */
+    .toggle-link,
+    .forgot-link {
+        font-size: 13px;
+    }
+}
+
+/* Tablet Portrait Mode */
+@media (min-width: 481px) and (max-width: 768px) {
+    .course-grid-container {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    .articles-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 15px;
+    }
+    
+    nav {
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    nav button.eye-catchy-btn {
+        flex: 0 1 calc(33.333% - 10px);
+        min-width: 140px;
+    }
+}
+
+/* Landscape Mode for Phones */
+@media (max-height: 600px) and (orientation: landscape) {
+    .login-box {
+        margin-top: 10px;
+        padding: 15px;
+        max-height: 80vh;
+        overflow-y: auto;
+    }
+    
+    nav {
+        margin: 10px 0;
+        padding: 10px;
+    }
+    
+    .clock-container {
+        top: 5px;
+        left: 5px;
+        padding: 5px 8px;
+    }
+}
+
+/* iPhone Notch Support */
+@supports (padding: max(0px)) {
+    body {
+        padding-left: max(10px, env(safe-area-inset-left));
+        padding-right: max(10px, env(safe-area-inset-right));
+        padding-top: max(10px, env(safe-area-inset-top));
+        padding-bottom: max(10px, env(safe-area-inset-bottom));
+    }
+}
+
+/* Touch-friendly Improvements */
+@media (hover: none) and (pointer: coarse) {
+    /* Larger touch targets */
+    button,
+    input[type="button"],
+    input[type="submit"],
+    .eye-catchy-btn,
+    .toggle-link,
+    .forgot-link {
+        min-height: 44px;
+        min-width: 44px;
+    }
+    
+    /* Remove hover effects for touch */
+    .course-card:hover .course-card-inner,
+    .article-card:hover,
+    .resource-link:hover {
+        transform: none;
+    }
+    
+    /* Active state for touch */
+    .eye-catchy-btn:active {
+        transform: scale(0.95);
+        transition: transform 0.1s ease;
+    }
+    
+    /* Better form input touch */
+    input,
+    select,
+    textarea {
+        font-size: 16px; /* Prevents iOS zoom */
+    }
+    
+    /* Touch scrolling improvements */
+    .modal-body,
+    .registration-form-container,
+    .user-list {
+        -webkit-overflow-scrolling: touch;
+        scroll-behavior: smooth;
+    }
+}
+
+/* Dark mode adjustments for OLED screens */
+@media (prefers-color-scheme: dark) {
+    body:not(.day-mode) {
+        background-color: #000000;
+    }
+    
+    .login-box {
+        background: rgba(0, 0, 0, 0.7);
+    }
+}
+
+/* High Contrast Mode */
+@media (prefers-contrast: high) {
+    .eye-catchy-btn {
+        border: 2px solid white;
+    }
+    
+    .login-box input,
+    .login-box select {
+        border: 2px solid white;
+    }
+}
+
+/* Reduced Motion */
+@media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+        scroll-behavior: auto !important;
+    }
+    
+    .mouse-trail {
+        display: none;
+    }
+    
+    #nebulaLight {
+        display: none;
+    }
+}
+
+/* Foldable Devices */
+@media (max-width: 300px) {
+    /* For very small screens like Galaxy Fold */
+    .login-box h2 {
+        font-size: 18px;
+    }
+    
+    nav button.eye-catchy-btn {
+        padding: 8px 10px;
+        font-size: 11px;
+        min-width: 90px;
+    }
+    
+    .course-card,
+    .article-card {
+        padding: 12px;
+    }
+}
+
+/* Performance Optimizations for Mobile */
+@media (max-width: 768px) {
+    /* Hardware acceleration for smoother animations */
+    .course-card,
+    .article-card,
+    .eye-catchy-btn,
+    .modal-content {
+        transform: translateZ(0);
+        backface-visibility: hidden;
+        -webkit-backface-visibility: hidden;
+    }
+    
+    /* Optimize image rendering */
+    img {
+        max-width: 100%;
+        height: auto;
+    }
+    
+    /* Reduce blur effects for better performance */
+    .login-box,
+    #content,
+    nav {
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+    }
+}
+
+/* Loading States */
+@media (max-width: 768px) {
+    .loading-state {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        min-height: 200px;
+    }
+    
+    .loading-spinner {
+        width: 40px;
+        height: 40px;
+        border: 3px solid rgba(255, 126, 179, 0.3);
+        border-radius: 50%;
+        border-top-color: #ff7eb3;
+        animation: spin 1s linear infinite;
+    }
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* Battery Saver Mode */
+@media (prefers-reduced-data: reduce) {
+    body {
+        background-image: none !important;
+        background-color: #000000;
+    }
+    
+    #nebulaLight {
+        display: none;
+    }
+}
