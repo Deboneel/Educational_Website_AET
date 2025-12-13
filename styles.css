@@ -3909,3 +3909,714 @@ nav button.eye-catchy-btn span {
         display: none;
     }
 }
+
+/* ==================== NAVIGATION 2x3 GRID FOR MOBILE ==================== */
+
+/* Main navigation container - Grid Layout */
+nav {
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-rows: repeat(2, auto) !important;
+    gap: 8px !important;
+    margin: 15px 0 !important;
+    padding: 12px !important;
+    background: rgba(0, 0, 0, 0.6) !important;
+    border-radius: 15px !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: visible !important;
+}
+
+/* Remove any scrollbar */
+nav::-webkit-scrollbar {
+    display: none !important;
+}
+
+/* Navigation buttons */
+nav button.eye-catchy-btn {
+    display: flex !important;
+    flex-direction: column !important;
+    align-items: center !important;
+    justify-content: center !important;
+    gap: 4px !important;
+    padding: 12px 8px !important;
+    width: 100% !important;
+    height: 65px !important;
+    margin: 0 !important;
+    border: none !important;
+    border-radius: 10px !important;
+    background: linear-gradient(135deg, rgba(102, 126, 234, 0.95), rgba(117, 75, 162, 0.95)) !important;
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 12px !important;
+    text-align: center !important;
+    cursor: pointer !important;
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    box-shadow: 0 3px 8px rgba(102, 126, 234, 0.3) !important;
+    position: relative !important;
+    overflow: hidden !important;
+    box-sizing: border-box !important;
+    white-space: normal !important;
+    word-break: break-word !important;
+}
+
+/* Button icons - Top */
+nav button.eye-catchy-btn i {
+    font-size: 18px !important;
+    display: block !important;
+    margin-bottom: 4px !important;
+}
+
+/* Button text - Bottom */
+nav button.eye-catchy-btn span {
+    font-size: 11px !important;
+    line-height: 1.2 !important;
+    display: block !important;
+    max-width: 100% !important;
+    text-align: center !important;
+    padding: 0 2px !important;
+}
+
+/* Active state */
+nav button.eye-catchy-btn.active {
+    background: linear-gradient(135deg, #ff7eb3, #ff6b6b) !important;
+    box-shadow: 0 4px 12px rgba(255, 126, 179, 0.4) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Hover/active states */
+nav button.eye-catchy-btn:active {
+    transform: scale(0.96) !important;
+    box-shadow: 0 2px 6px rgba(102, 126, 234, 0.4) !important;
+}
+
+/* Icon colors for each button */
+nav button.eye-catchy-btn:nth-child(1) i { color: #00ffc8 !important; } /* Courses */
+nav button.eye-catchy-btn:nth-child(2) i { color: #ffd700 !important; } /* Articles */
+nav button.eye-catchy-btn:nth-child(3) i { color: #ff7eb3 !important; } /* Publications */
+nav button.eye-catchy-btn:nth-child(4) i { color: #667eea !important; } /* Diary */
+nav button.eye-catchy-btn:nth-child(5) i { color: #9b59b6 !important; } /* Music */
+nav button.eye-catchy-btn:nth-child(6) i { color: #2ecc71 !important; } /* Movies */
+
+/* Active button indicator */
+nav button.eye-catchy-btn.active::after {
+    content: '' !important;
+    position: absolute !important;
+    top: 4px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    width: 6px !important;
+    height: 6px !important;
+    background: white !important;
+    border-radius: 50% !important;
+    box-shadow: 0 0 6px white !important;
+}
+
+/* Ripple effect */
+nav button.eye-catchy-btn::before {
+    content: '' !important;
+    position: absolute !important;
+    top: 50% !important;
+    left: 50% !important;
+    width: 0 !important;
+    height: 0 !important;
+    border-radius: 50% !important;
+    background: rgba(255, 255, 255, 0.2) !important;
+    transform: translate(-50%, -50%) !important;
+    transition: width 0.3s, height 0.3s !important;
+}
+
+nav button.eye-catchy-btn:active::before {
+    width: 200px !important;
+    height: 200px !important;
+}
+
+/* ==================== RESPONSIVE ADJUSTMENTS ==================== */
+
+/* Very small phones (iPhone SE, Galaxy Fold) */
+@media (max-width: 360px) {
+    nav {
+        gap: 6px !important;
+        padding: 10px !important;
+    }
+    
+    nav button.eye-catchy-btn {
+        height: 60px !important;
+        padding: 10px 6px !important;
+    }
+    
+    nav button.eye-catchy-btn i {
+        font-size: 16px !important;
+    }
+    
+    nav button.eye-catchy-btn span {
+        font-size: 10px !important;
+    }
+}
+
+/* Medium phones (most smartphones) */
+@media (min-width: 361px) and (max-width: 480px) {
+    nav {
+        gap: 8px !important;
+        padding: 12px !important;
+    }
+    
+    nav button.eye-catchy-btn {
+        height: 70px !important;
+        padding: 12px 8px !important;
+    }
+    
+    nav button.eye-catchy-btn i {
+        font-size: 20px !important;
+    }
+    
+    nav button.eye-catchy-btn span {
+        font-size: 12px !important;
+    }
+}
+
+/* Larger phones (iPhone Plus, Pixel XL) */
+@media (min-width: 481px) and (max-width: 768px) {
+    nav {
+        gap: 10px !important;
+        padding: 15px !important;
+    }
+    
+    nav button.eye-catchy-btn {
+        height: 80px !important;
+        padding: 14px 10px !important;
+    }
+    
+    nav button.eye-catchy-btn i {
+        font-size: 22px !important;
+    }
+    
+    nav button.eye-catchy-btn span {
+        font-size: 13px !important;
+    }
+}
+
+/* Tablet portrait */
+@media (min-width: 769px) and (max-width: 1024px) {
+    nav {
+        grid-template-columns: repeat(3, 1fr) !important;
+        grid-template-rows: repeat(2, auto) !important;
+        gap: 12px !important;
+        padding: 18px !important;
+    }
+    
+    nav button.eye-catchy-btn {
+        height: 85px !important;
+        padding: 16px 12px !important;
+    }
+    
+    nav button.eye-catchy-btn i {
+        font-size: 24px !important;
+    }
+    
+    nav button.eye-catchy-btn span {
+        font-size: 14px !important;
+    }
+}
+
+/* Desktop - Keep original layout */
+@media (min-width: 1025px) {
+    nav {
+        display: flex !important;
+        flex-wrap: wrap !important;
+        justify-content: center !important;
+        gap: 15px !important;
+        padding: 20px !important;
+    }
+    
+    nav button.eye-catchy-btn {
+        flex: 0 1 auto !important;
+        flex-direction: row !important;
+        width: auto !important;
+        min-width: 160px !important;
+        height: auto !important;
+        padding: 12px 20px !important;
+    }
+    
+    nav button.eye-catchy-btn i {
+        font-size: 16px !important;
+        margin-right: 10px !important;
+        margin-bottom: 0 !important;
+    }
+    
+    nav button.eye-catchy-btn span {
+        font-size: 14px !important;
+        text-align: left !important;
+    }
+}
+
+/* Landscape mode adjustments */
+@media (orientation: landscape) and (max-height: 500px) {
+    nav {
+        grid-template-columns: repeat(6, 1fr) !important;
+        grid-template-rows: 1fr !important;
+        gap: 6px !important;
+        padding: 8px !important;
+    }
+    
+    nav button.eye-catchy-btn {
+        height: 50px !important;
+        padding: 6px 4px !important;
+    }
+    
+    nav button.eye-catchy-btn i {
+        font-size: 14px !important;
+        margin-bottom: 2px !important;
+    }
+    
+    nav button.eye-catchy-btn span {
+        font-size: 9px !important;
+    }
+}
+
+/* ==================== VISUAL ENHANCEMENTS ==================== */
+
+/* Button hover glow */
+nav button.eye-catchy-btn:hover {
+    box-shadow: 0 0 15px rgba(102, 126, 234, 0.5) !important;
+}
+
+/* Gradient border effect */
+nav button.eye-catchy-btn::after {
+    content: '' !important;
+    position: absolute !important;
+    top: -2px !important;
+    left: -2px !important;
+    right: -2px !important;
+    bottom: -2px !important;
+    background: linear-gradient(45deg, 
+        rgba(0, 255, 200, 0.3),
+        rgba(255, 215, 0, 0.3),
+        rgba(255, 126, 179, 0.3),
+        rgba(102, 126, 234, 0.3),
+        rgba(155, 89, 182, 0.3),
+        rgba(46, 204, 113, 0.3)) !important;
+    border-radius: 12px !important;
+    z-index: -1 !important;
+    opacity: 0 !important;
+    transition: opacity 0.3s !important;
+}
+
+nav button.eye-catchy-btn.active::after {
+    opacity: 1 !important;
+}
+
+/* Shine effect on active */
+nav button.eye-catchy-btn.active::before {
+    content: '' !important;
+    position: absolute !important;
+    top: -50% !important;
+    left: -50% !important;
+    width: 200% !important;
+    height: 200% !important;
+    background: linear-gradient(
+        to bottom right,
+        rgba(255, 255, 255, 0) 0%,
+        rgba(255, 255, 255, 0.1) 50%,
+        rgba(255, 255, 255, 0) 100%
+    ) !important;
+    transform: rotate(30deg) !important;
+    transition: left 0.6s !important;
+}
+
+/* Remove any inherited flex properties */
+nav,
+nav * {
+    display: grid !important;
+}
+
+/* Ensure proper grid item placement */
+nav button.eye-catchy-btn {
+    grid-column: span 1 !important;
+    grid-row: span 1 !important;
+}
+
+/* Specific positioning for 2x3 grid */
+nav button.eye-catchy-btn:nth-child(1) { grid-column: 1; grid-row: 1; }
+nav button.eye-catchy-btn:nth-child(2) { grid-column: 2; grid-row: 1; }
+nav button.eye-catchy-btn:nth-child(3) { grid-column: 3; grid-row: 1; }
+nav button.eye-catchy-btn:nth-child(4) { grid-column: 1; grid-row: 2; }
+nav button.eye-catchy-btn:nth-child(5) { grid-column: 2; grid-row: 2; }
+nav button.eye-catchy-btn:nth-child(6) { grid-column: 3; grid-row: 2; }
+
+/* ==================== GLASS MORPHISM FORM ELEMENTS ==================== */
+
+/* Glass morphism select dropdown */
+select {
+    appearance: none !important;
+    -webkit-appearance: none !important;
+    -moz-appearance: none !important;
+    width: 100% !important;
+    padding: 14px 40px 14px 16px !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 12px !important;
+    color: white !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    outline: none !important;
+    position: relative !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1), 
+                inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Custom dropdown arrow */
+select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ff7eb3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E") !important;
+    background-repeat: no-repeat !important;
+    background-position: right 16px center !important;
+    background-size: 20px !important;
+    padding-right: 50px !important;
+}
+
+/* Hover state */
+select:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 126, 179, 0.4) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Focus state */
+select:focus {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    border-color: #ff7eb3 !important;
+    box-shadow: 0 0 0 3px rgba(255, 126, 179, 0.2),
+                0 8px 25px rgba(0, 0, 0, 0.2),
+                inset 0 2px 0 rgba(255, 255, 255, 0.2) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Active state */
+select:active {
+    transform: scale(0.98) !important;
+}
+
+/* Dropdown options styling */
+select option {
+    background: rgba(30, 30, 46, 0.95) !important;
+    color: white !important;
+    font-size: 16px !important;
+    padding: 12px 16px !important;
+    border: none !important;
+    outline: none !important;
+}
+
+select option:hover,
+select option:focus,
+select option:checked {
+    background: linear-gradient(45deg, rgba(255, 126, 179, 0.9), rgba(255, 107, 107, 0.9)) !important;
+    color: white !important;
+}
+
+/* Placeholder option */
+select option[value=""][disabled] {
+    color: rgba(255, 255, 255, 0.6) !important;
+    font-style: italic !important;
+}
+
+/* Glass morphism text inputs */
+input[type="text"],
+input[type="email"],
+input[type="tel"],
+input[type="password"],
+textarea {
+    width: 100% !important;
+    padding: 14px 16px !important;
+    background: rgba(255, 255, 255, 0.15) !important;
+    backdrop-filter: blur(10px) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 12px !important;
+    color: white !important;
+    font-size: 16px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    outline: none !important;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Input placeholder */
+input::placeholder,
+textarea::placeholder {
+    color: rgba(255, 255, 255, 0.6) !important;
+    font-weight: 400 !important;
+}
+
+/* Input hover state */
+input[type="text"]:hover,
+input[type="email"]:hover,
+input[type="tel"]:hover,
+input[type="password"]:hover,
+textarea:hover {
+    background-color: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 126, 179, 0.4) !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.15) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Input focus state */
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+    background-color: rgba(255, 255, 255, 0.25) !important;
+    border-color: #ff7eb3 !important;
+    box-shadow: 0 0 0 3px rgba(255, 126, 179, 0.2),
+                0 8px 25px rgba(0, 0, 0, 0.2),
+                inset 0 2px 0 rgba(255, 255, 255, 0.2) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Active state */
+input[type="text"]:active,
+input[type="email"]:active,
+input[type="tel"]:active,
+input[type="password"]:active,
+textarea:active {
+    transform: scale(0.98) !important;
+}
+
+/* Form labels */
+.form-group label,
+.profile-form-group label,
+.recovery-input-group label {
+    display: block !important;
+    color: #ffd700 !important;
+    font-size: 14px !important;
+    font-weight: 600 !important;
+    margin-bottom: 8px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+}
+
+.form-group label i,
+.profile-form-group label i,
+.recovery-input-group label i {
+    margin-right: 8px !important;
+    color: #ff7eb3 !important;
+    width: 16px !important;
+    text-align: center !important;
+}
+
+/* Form group spacing */
+.form-group,
+.profile-form-group,
+.recovery-input-group {
+    margin-bottom: 20px !important;
+}
+
+/* Form container glass effect */
+.login-box,
+.registration-form-container,
+.recovery-form,
+#profile-update-form,
+.modal-content,
+.notification-content {
+    background: rgba(255, 255, 255, 0.1) !important;
+    backdrop-filter: blur(20px) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3),
+                inset 0 1px 0 rgba(255, 255, 255, 0.1) !important;
+}
+
+/* Form section headers */
+h2, h3, h4 {
+    color: #ff7eb3 !important;
+    text-shadow: 0 2px 10px rgba(255, 126, 179, 0.3) !important;
+}
+
+/* Focus glow animation */
+@keyframes inputGlow {
+    0% {
+        box-shadow: 0 0 0 0 rgba(255, 126, 179, 0.7);
+    }
+    70% {
+        box-shadow: 0 0 0 10px rgba(255, 126, 179, 0);
+    }
+    100% {
+        box-shadow: 0 0 0 0 rgba(255, 126, 179, 0);
+    }
+}
+
+/* Apply glow animation on focus */
+select:focus,
+input[type="text"]:focus,
+input[type="email"]:focus,
+input[type="tel"]:focus,
+input[type="password"]:focus,
+textarea:focus {
+    animation: inputGlow 1.5s ease-in-out !important;
+}
+
+/* Required field indicator */
+.form-group.required label::after,
+.profile-form-group.required label::after {
+    content: " *" !important;
+    color: #ff6b6b !important;
+    margin-left: 4px !important;
+}
+
+/* Input validation states */
+input:invalid,
+select:invalid,
+textarea:invalid {
+    border-color: rgba(255, 107, 107, 0.5) !important;
+}
+
+input:valid:focus,
+select:valid:focus,
+textarea:valid:focus {
+    border-color: #2ecc71 !important;
+}
+
+/* Loading state for selects */
+select.loading {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23ff7eb3' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M21 12a9 9 0 1 1-6.219-8.56'%3E%3C/path%3E%3C/svg%3E") !important;
+    animation: spin 1s linear infinite !important;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
+/* Success state */
+select.success,
+input.success,
+textarea.success {
+    border-color: #2ecc71 !important;
+    background-color: rgba(46, 204, 113, 0.1) !important;
+}
+
+/* Error state */
+select.error,
+input.error,
+textarea.error {
+    border-color: #e74c3c !important;
+    background-color: rgba(231, 76, 60, 0.1) !important;
+}
+
+/* Mobile adjustments for form elements */
+@media (max-width: 768px) {
+    select,
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"],
+    textarea {
+        padding: 12px 14px !important;
+        font-size: 16px !important; /* Prevents iOS zoom */
+        border-radius: 10px !important;
+    }
+    
+    select {
+        padding-right: 45px !important;
+        background-position: right 14px center !important;
+    }
+    
+    /* Larger touch targets */
+    select,
+    input {
+        min-height: 48px !important;
+    }
+}
+
+/* Very small screens */
+@media (max-width: 480px) {
+    select,
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"],
+    textarea {
+        padding: 10px 12px !important;
+        font-size: 15px !important;
+        border-radius: 8px !important;
+    }
+    
+    select {
+        padding-right: 40px !important;
+        background-position: right 12px center !important;
+        background-size: 16px !important;
+    }
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    select,
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"],
+    textarea {
+        background: rgba(0, 0, 0, 0.3) !important;
+        border-color: rgba(255, 255, 255, 0.15) !important;
+    }
+    
+    select:hover,
+    input:hover,
+    textarea:hover {
+        background-color: rgba(0, 0, 0, 0.4) !important;
+    }
+    
+    select:focus,
+    input:focus,
+    textarea:focus {
+        background-color: rgba(0, 0, 0, 0.5) !important;
+    }
+}
+
+/* High contrast mode */
+@media (prefers-contrast: high) {
+    select,
+    input[type="text"],
+    input[type="email"],
+    input[type="tel"],
+    input[type="password"],
+    textarea {
+        border-width: 2px !important;
+        border-style: solid !important;
+        border-color: white !important;
+        background: black !important;
+        color: white !important;
+    }
+    
+    select option {
+        background: black !important;
+        color: white !important;
+        border: 1px solid white !important;
+    }
+}
+
+/* Remove any default browser styling */
+select:-webkit-autofill,
+select:-webkit-autofill:hover,
+select:-webkit-autofill:focus,
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus {
+    -webkit-text-fill-color: white !important;
+    -webkit-box-shadow: 0 0 0px 1000px rgba(30, 30, 46, 0.8) inset !important;
+    transition: background-color 5000s ease-in-out 0s !important;
+    border: 2px solid rgba(255, 126, 179, 0.3) !important;
+}
