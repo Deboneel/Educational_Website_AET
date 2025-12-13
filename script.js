@@ -988,36 +988,99 @@ function showContent(section) {
 }
 
 // ==================== COURSES SECTION (Updated with Software and Job Sections) ====================
+// ==================== COURSES SECTION (ENHANCED 2-COLUMN DESIGN) ====================
 function showCourses() {
     const content = document.getElementById('content');
     if (!content) return;
     
+    // Group courses by level
+    const groupedCourses = {};
+    Object.entries(courses).forEach(([semester, data]) => {
+        const level = semester.split(' ')[1];
+        if (!groupedCourses[level]) {
+            groupedCourses[level] = [];
+        }
+        groupedCourses[level].push({ semester, data });
+    });
+    
+    // Sort each level's courses
+    Object.keys(groupedCourses).forEach(level => {
+        groupedCourses[level].sort((a, b) => {
+            const semA = parseInt(a.semester.split(' ')[3]);
+            const semB = parseInt(b.semester.split(' ')[3]);
+            return semA - semB;
+        });
+    });
+    
     let html = `
         <div class="courses-section">
-            <h2 style="color:#ff7eb3; margin-bottom: 20px;">
-                <i class="fas fa-graduation-cap"></i> Available Courses
-            </h2>
-            <p style="color: rgba(255,255,255,0.8); margin-bottom: 30px;">
-                Browse through all available courses. Click on any course to access study materials.
-            </p>
+            <div class="section-header">
+                <h2><i class="fas fa-graduation-cap"></i> Academic Course Materials</h2>
+                <p class="section-subtitle">Browse organized study materials by academic level and semester</p>
+            </div>
             
-            <div class="course-grid">`;
+            <!-- Quick Navigation -->
+            <div class="quick-nav">
+                <div class="nav-buttons">
+                    <button class="nav-btn active" onclick="scrollToLevel('Level 1')">
+                        <i class="fas fa-1"></i> Level 1
+                    </button>
+                    <button class="nav-btn" onclick="scrollToLevel('Level 2')">
+                        <i class="fas fa-2"></i> Level 2
+                    </button>
+                    <button class="nav-btn" onclick="scrollToLevel('Level 3')">
+                        <i class="fas fa-3"></i> Level 3
+                    </button>
+                    <button class="nav-btn" onclick="scrollToLevel('Level 4')">
+                        <i class="fas fa-4"></i> Level 4
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Level Containers -->
+            <div class="levels-container">`;
     
-    Object.entries(courses).forEach(([semester, data]) => {
+    // Generate HTML for each level
+    Object.entries(groupedCourses).forEach(([level, coursesArray]) => {
+        const levelNumber = level;
+        const levelTitle = `Level ${levelNumber}`;
+        const totalCredits = coursesArray.reduce((sum, course) => sum + course.data.commonCredits, 0);
+        const totalHours = coursesArray.reduce((sum, course) => sum + course.data.commonHours, 0);
+        
         html += `
-            <div class="course-card" onclick="openCourse('${semester}')">
-                <h3>${semester}</h3>
-                <div style="margin-top: 10px;">
-                    <p style="color: rgba(255,255,255,0.8); font-size: 14px;">
-                        <i class="fas fa-book"></i> Common Credits: ${data.commonCredits}
-                    </p>
-                    <p style="color: rgba(255,255,255,0.8); font-size: 14px;">
-                        <i class="fas fa-clock"></i> Common Hours: ${data.commonHours}
-                    </p>
-                    ${data.departmentalCredits ? 
-                        `<p style="color: #ffd700; font-size: 14px; margin-top: 5px;">
-                            <i class="fas fa-university"></i> Departmental Credits Available
-                        </p>` : ''}
+            <div class="level-container" id="level-${levelNumber}">
+                <div class="level-header">
+                    <div class="level-title">
+                        <h3><i class="fas fa-layer-group"></i> ${levelTitle}</h3>
+                        <span class="course-count">${coursesArray.length} Semesters</span>
+                    </div>
+                    <div class="level-stats">
+                        <div class="level-stat">
+                            <i class="fas fa-book"></i>
+                            <span>${totalCredits} Credits</span>
+                        </div>
+                        <div class="level-stat">
+                            <i class="fas fa-clock"></i>
+                            <span>${totalHours} Hours</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="semester-pairs">`;
+        
+        // Group into pairs (Semester 1 & 2 together)
+        for (let i = 0; i < coursesArray.length; i += 2) {
+            const course1 = coursesArray[i];
+            const course2 = coursesArray[i + 1];
+            
+            html += `
+                <div class="semester-pair">
+                    ${course1 ? createCourseCard(course1, 'left') : ''}
+                    ${course2 ? createCourseCard(course2, 'right') : ''}
+                </div>`;
+        }
+        
+        html += `
                 </div>
             </div>`;
     });
@@ -1025,35 +1088,192 @@ function showCourses() {
     html += `
             </div>
             
-            <!-- Software Section -->
-            <div class="resource-section">
-                <div class="resource-card">
-                    <h3><i class="fas fa-laptop-code"></i> Software & Tools</h3>
-                    <p style="color: rgba(255,255,255,0.8); margin-bottom: 15px;">
-                        Useful software and tools for agricultural engineering students.
-                    </p>
-                    <a href="https://drive.google.com/drive/folders/14QucZErDJMF60tXB9YT4tOD1QdFszexU?usp=drive_link" 
-                       target="_blank" class="resource-link">
-                        <i class="fab fa-google-drive"></i>
-                        <span>Access Software Collection</span>
-                    </a>
+            <!-- Additional Resources Section -->
+            <div class="resources-section">
+                <div class="resources-header">
+                    <h3><i class="fas fa-toolbox"></i> Essential Resources</h3>
+                    <p>Tools and opportunities for your academic and professional growth</p>
                 </div>
                 
-                <div class="resource-card">
-                    <h3><i class="fas fa-briefcase"></i> Job & Career Resources</h3>
-                    <p style="color: rgba(255,255,255,0.8); margin-bottom: 15px;">
-                        Job opportunities, internship information, and career guidance.
-                    </p>
-                    <a href="https://drive.google.com/drive/folders/1V5xHqOf5V23ElI2oKk8yKe3Llv_UQlA1?usp=drive_link" 
-                       target="_blank" class="resource-link">
-                        <i class="fab fa-google-drive"></i>
-                        <span>Explore Job Opportunities</span>
-                    </a>
+                <div class="resources-grid">
+                    <div class="resource-card software-card">
+                        <div class="resource-icon">
+                            <i class="fas fa-laptop-code fa-3x"></i>
+                        </div>
+                        <div class="resource-content">
+                            <h4><i class="fas fa-download"></i> Software Collection</h4>
+                            <p class="resource-description">Complete software suite including CAD tools, data analysis software, simulation programs, and research applications.</p>
+                            <div class="resource-features">
+                                <div class="feature">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Engineering Design Software</span>
+                                </div>
+                                <div class="feature">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Data Analysis Tools</span>
+                                </div>
+                                <div class="feature">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Simulation Programs</span>
+                                </div>
+                                <div class="feature">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Research Applications</span>
+                                </div>
+                            </div>
+                            <a href="https://drive.google.com/drive/folders/14QucZErDJMF60tXB9YT4tOD1QdFszexU?usp=drive_link" 
+                               target="_blank" class="resource-btn">
+                                <i class="fab fa-google-drive"></i>
+                                Access Software
+                            </a>
+                        </div>
+                    </div>
+                    
+                    <div class="resource-card job-card">
+                        <div class="resource-icon">
+                            <i class="fas fa-briefcase fa-3x"></i>
+                        </div>
+                        <div class="resource-content">
+                            <h4><i class="fas fa-briefcase"></i> Career Resources</h4>
+                            <p class="resource-description">Job opportunities, internships, career guidance, interview preparation, and professional development resources.</p>
+                            <div class="resource-features">
+                                <div class="feature">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Latest Job Openings</span>
+                                </div>
+                                <div class="feature">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Internship Programs</span>
+                                </div>
+                                <div class="feature">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Career Guidance</span>
+                                </div>
+                                <div class="feature">
+                                    <i class="fas fa-check-circle"></i>
+                                    <span>Interview Preparation</span>
+                                </div>
+                            </div>
+                            <a href="https://drive.google.com/drive/folders/1V5xHqOf5V23ElI2oKk8yKe3Llv_UQlA1?usp=drive_link" 
+                               target="_blank" class="resource-btn">
+                                <i class="fab fa-google-drive"></i>
+                                Explore Opportunities
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Stats Summary -->
+            <div class="stats-summary">
+                <div class="summary-card">
+                    <i class="fas fa-graduation-cap"></i>
+                    <h4>${Object.keys(courses).length}</h4>
+                    <p>Total Semesters</p>
+                </div>
+                <div class="summary-card">
+                    <i class="fas fa-book"></i>
+                    <h4>${Object.values(courses).reduce((sum, course) => sum + course.commonCredits, 0)}+</h4>
+                    <p>Total Credits</p>
+                </div>
+                <div class="summary-card">
+                    <i class="fas fa-university"></i>
+                    <h4>4</h4>
+                    <p>Departments</p>
+                </div>
+                <div class="summary-card">
+                    <i class="fas fa-check-circle"></i>
+                    <h4>100%</h4>
+                    <p>Materials Available</p>
                 </div>
             </div>
         </div>`;
     
     content.innerHTML = html;
+}
+
+// Helper function to create course card
+function createCourseCard(course, position) {
+    const { semester, data } = course;
+    const semesterNum = semester.split(' ')[3];
+    const hasDeptCredits = data.departmentalCredits ? Object.keys(data.departmentalCredits).length : 0;
+    
+    return `
+        <div class="course-card ${position}">
+            <div class="course-card-content">
+                <div class="course-header">
+                    <div class="semester-tag">Semester ${semesterNum}</div>
+                    <div class="credit-badge">
+                        <i class="fas fa-star"></i>
+                        ${data.commonCredits} Credits
+                    </div>
+                </div>
+                
+                <div class="course-body">
+                    <h3 class="course-title">${semester}</h3>
+                    
+                    <div class="course-info">
+                        <div class="info-item">
+                            <i class="fas fa-clock"></i>
+                            <span>${data.commonHours} Class Hours</span>
+                        </div>
+                        ${hasDeptCredits > 0 ? `
+                        <div class="info-item">
+                            <i class="fas fa-users"></i>
+                            <span>${hasDeptCredits} Department Options</span>
+                        </div>
+                        ` : ''}
+                    </div>
+                    
+                    ${data.departmentalCredits ? `
+                    <div class="departments-preview">
+                        <div class="dept-title">Departmental Credits:</div>
+                        <div class="dept-tags">
+                            ${Object.keys(data.departmentalCredits).map(dept => `
+                                <span class="dept-tag dept-${dept.toLowerCase()}">${dept}</span>
+                            `).join('')}
+                        </div>
+                    </div>
+                    ` : ''}
+                    
+                    ${data.internship ? `
+                    <div class="internship-notice">
+                        <i class="fas fa-briefcase"></i>
+                        Includes ${data.internship}-week Internship
+                    </div>
+                    ` : ''}
+                </div>
+                
+                <div class="course-footer">
+                    <button onclick="openCourse('${semester}')" class="materials-btn">
+                        <i class="fas fa-external-link-alt"></i>
+                        Access Materials
+                    </button>
+                    <div class="quick-stats">
+                        <span class="stat">
+                            <i class="fas fa-book-open"></i>
+                            Study Materials
+                        </span>
+                        <span class="stat">
+                            <i class="fas fa-file-pdf"></i>
+                            PDF Resources
+                        </span>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+}
+
+// Navigation functions
+function scrollToLevel(level) {
+    const levelNum = level.split(' ')[1];
+    const element = document.getElementById(`level-${levelNum}`);
+    if (element) {
+        element.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        // Update active button
+        document.querySelectorAll('.nav-btn').forEach(btn => btn.classList.remove('active'));
+        event.target.classList.add('active');
+    }
 }
 
 function openCourse(semester) {
