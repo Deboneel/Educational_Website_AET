@@ -26,7 +26,88 @@ body.day-mode {
     background-image: url('https://images7.alphacoders.com/127/thumb-1920-1275132.jpg');
 }
 
-.hidden { display: none !important; }
+.hidden { 
+    display: none !important; 
+    opacity: 0 !important;
+    visibility: hidden !important;
+}
+
+/* Mobile-Optimized Clock */
+.clock-container {
+    position: fixed;
+    top: 10px;
+    left: 10px;
+    background: rgba(0, 0, 0, 0.7);
+    color: #fff;
+    padding: 8px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: bold;
+    z-index: 10000;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    max-width: 120px;
+    transition: all 0.3s ease;
+}
+
+.clock-date {
+    font-size: 10px;
+    color: #ff7eb3;
+    margin-bottom: 3px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    max-width: 100%;
+}
+
+.clock-time {
+    font-size: 14px;
+    font-weight: bold;
+    color: #00ffc8;
+}
+
+/* Desktop Clock */
+@media (min-width: 769px) {
+    .clock-container {
+        top: 20px;
+        left: 20px;
+        padding: 10px 18px;
+        border-radius: 25px;
+        font-size: 14px;
+        max-width: 180px;
+    }
+    
+    .clock-date {
+        font-size: 12px;
+    }
+    
+    .clock-time {
+        font-size: 18px;
+    }
+}
+
+/* Mobile-specific adjustments */
+@media (max-width: 480px) {
+    .clock-container {
+        top: 5px;
+        left: 5px;
+        padding: 6px 10px;
+        border-radius: 15px;
+        max-width: 100px;
+    }
+    
+    .clock-date {
+        font-size: 9px;
+    }
+    
+    .clock-time {
+        font-size: 12px;
+    }
+}
 
 /* Login & Registration Box */
 .login-box {
@@ -38,6 +119,7 @@ body.day-mode {
     max-width: 95%;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
     border: 1px solid rgba(255, 255, 255, 0.2);
+    margin-top: 50px;
 }
 
 .login-box h2 {
@@ -120,6 +202,7 @@ body.day-mode {
     align-items: center;
     justify-content: center;
     gap: 10px;
+    margin: 5px;
 }
 
 .eye-catchy-btn:hover {
@@ -166,6 +249,19 @@ body.day-mode {
     color: #ff2e6b; 
 }
 
+/* Forgot Link */
+.forgot-link {
+    margin-top: 15px;
+    color: #00ffc8;
+    text-decoration: underline;
+    cursor: pointer;
+    font-size: 14px;
+}
+
+.forgot-link:hover {
+    color: #ff7eb3;
+}
+
 /* Theme Toggle */
 .theme-toggle-container {
     position: absolute;
@@ -180,6 +276,15 @@ body.day-mode {
     font-size: 14px;
 }
 
+/* Mobile theme toggle adjustment */
+@media (max-width: 768px) {
+    .theme-toggle-container {
+        position: static;
+        margin-bottom: 15px;
+        margin-top: 40px;
+    }
+}
+
 /* Main Container */
 .container {
     width: 90%;
@@ -191,23 +296,24 @@ body.day-mode {
 /* Navigation */
 nav {
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap; /* Change from wrap to nowrap */
     justify-content: center;
-    gap: 15px;
+    gap: 10px; /* Reduce gap from 15px to 10px */
     margin: 20px 0;
-    padding: 20px;
+    padding: 15px; /* Reduce padding from 20px to 15px */
     background: rgba(0, 0, 0, 0.4);
     border-radius: 15px;
     backdrop-filter: blur(8px);
 }
 
 nav button.eye-catchy-btn {
-    padding: 12px 20px;
+    padding: 10px 15px; /* Reduce padding */
     background: linear-gradient(45deg, #667eea, #764ba2);
     box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
     border-radius: 10px;
-    flex: 1;
-    min-width: 200px;
+    flex: 1; /* Keep equal width distribution */
+    min-width: 0; /* Change from 200px to 0 */
+    font-size: 14px; /* Reduce font size if needed */
 }
 
 nav button.eye-catchy-btn:hover {
@@ -284,6 +390,49 @@ nav button.eye-catchy-btn:hover {
     border-left: 40px solid transparent;
 }
 
+/* Software and Job Sections */
+.software-section, .job-section {
+    margin-top: 30px;
+    padding: 20px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border: 1px solid rgba(255, 126, 179, 0.2);
+}
+
+.software-section h3, .job-section h3 {
+    color: #ff7eb3;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.resource-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 20px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: 8px;
+    color: white;
+    text-decoration: none;
+    margin: 10px;
+    transition: all 0.3s ease;
+    border: 1px solid transparent;
+}
+
+.resource-link:hover {
+    background: rgba(255, 126, 179, 0.2);
+    border-color: #ff7eb3;
+    transform: translateY(-2px);
+    box-shadow: 0 5px 15px rgba(255, 126, 179, 0.3);
+}
+
+.resource-link i {
+    font-size: 20px;
+    color: #ffd700;
+}
+
 /* User Stats */
 .user-stats {
     display: flex;
@@ -315,6 +464,17 @@ nav button.eye-catchy-btn:hover {
     color: #00ffc8;
     font-weight: bold;
     margin-left: 5px;
+}
+
+/* Update Info Button */
+.update-info-btn {
+    background: linear-gradient(45deg, #27ae60, #2ecc71) !important;
+    box-shadow: 0 4px 15px rgba(39, 174, 96, 0.4) !important;
+}
+
+.update-info-btn:hover {
+    background: linear-gradient(45deg, #2ecc71, #27ae60) !important;
+    box-shadow: 0 6px 20px rgba(39, 174, 96, 0.6) !important;
 }
 
 /* Diary Section */
@@ -441,7 +601,7 @@ nav button.eye-catchy-btn:hover {
     box-shadow: 0 6px 20px rgba(255, 65, 108, 0.6);
 }
 
-/* Nebula Light & Clock */
+/* Nebula Light */
 #nebulaLight {
     position: fixed;
     width: 150px;
@@ -461,21 +621,6 @@ nav button.eye-catchy-btn:hover {
 @keyframes float {
     0% { transform: translate(-50%, -50%) rotate(0deg); }
     100% { transform: translate(-50%, -50%) rotate(360deg); }
-}
-
-#clock {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    background: rgba(0,0,0,0.6);
-    color: #fff;
-    padding: 10px 18px;
-    border-radius: 50px;
-    font-size: 18px;
-    font-weight: bold;
-    z-index: 10000;
-    backdrop-filter: blur(10px);
-    border: 1px solid rgba(255,255,255,0.2);
 }
 
 /* Popup */
@@ -756,91 +901,42 @@ nav button.eye-catchy-btn:hover {
     background: linear-gradient(45deg, #ff477e, #ff2e6b);
 }
 
-/* Responsive Design */
-@media (max-width: 768px) {
-    .login-box {
-        width: 95%;
-        padding: 25px;
-    }
-    
-    .form-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    nav {
-        flex-direction: column;
-    }
-    
-    nav button.eye-catchy-btn {
-        width: 100%;
-    }
-    
-    .course-container {
-        grid-template-columns: 1fr;
-    }
-    
-    .articles-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .theme-toggle-container {
-        position: static;
-        margin-bottom: 20px;
-    }
-    
-    #about-section {
-        width: 90vw;
-        right: 5vw;
-    }
-    
-    .developer-info {
-        flex-direction: column;
-    }
-    
-    .movie-input {
-        width: 100%;
-        margin-bottom: 10px;
-    }
-    
-    .user-stats {
-        flex-direction: column;
-        align-items: center;
-    }
-    
-    #user-counts-display {
-        margin-right: 0;
-        margin-bottom: 10px;
-        padding: 10px 15px;
-    }
-    
-    .stat-item {
-        display: block;
-        margin: 5px 0;
-    }
+/* Recovery Form */
+.recovery-form {
+    background: rgba(0,0,0,0.3);
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+    border: 1px solid rgba(255,126,179,0.3);
 }
 
-@media (max-width: 480px) {
-    .welcome-message {
-        font-size: 1.5rem;
-    }
-    
-    .eye-catchy-btn {
-        padding: 10px 20px;
-        font-size: 14px;
-    }
-    
-    #content {
-        padding: 15px;
-    }
-    
-    .course-card, .article-card {
-        padding: 15px;
-    }
+.recovery-option {
+    background: rgba(255,126,179,0.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
 }
 
-/* Admin Panel Styles */
+.recovery-option:hover {
+    background: rgba(255,126,179,0.2);
+    transform: translateX(5px);
+}
+
+.back-link {
+    color: #ff7eb3;
+    cursor: pointer;
+    margin-top: 15px;
+    display: inline-block;
+}
+
+.back-link:hover {
+    text-decoration: underline;
+}
+
+/* Modal Styles */
 .modal {
-    display: none;
     position: fixed;
     top: 0;
     left: 0;
@@ -849,15 +945,21 @@ nav button.eye-catchy-btn:hover {
     background: rgba(0, 0, 0, 0.8);
     z-index: 10000;
     backdrop-filter: blur(10px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
     opacity: 0;
-    transition: opacity 0.3s ease;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.modal.show {
+    opacity: 1;
+    visibility: visible;
 }
 
 .modal-content {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
+    position: relative;
     background: linear-gradient(135deg, rgba(30, 30, 46, 0.95), rgba(20, 20, 30, 0.98));
     width: 90%;
     max-width: 1200px;
@@ -872,11 +974,11 @@ nav button.eye-catchy-btn:hover {
 @keyframes modalSlideIn {
     from {
         opacity: 0;
-        transform: translate(-50%, -60%);
+        transform: translateY(-60px);
     }
     to {
         opacity: 1;
-        transform: translate(-50%, -50%);
+        transform: translateY(0);
     }
 }
 
@@ -925,6 +1027,196 @@ nav button.eye-catchy-btn:hover {
     max-height: calc(90vh - 80px);
 }
 
+/* Profile Update Form */
+#profile-update-form {
+    padding: 20px;
+    max-height: 60vh;
+    overflow-y: auto;
+}
+
+.profile-form-group {
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+}
+
+.profile-form-group label {
+    color: #ff7eb3;
+    margin-bottom: 5px;
+    font-size: 14px;
+    font-weight: bold;
+}
+
+.profile-form-group input,
+.profile-form-group select {
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 126, 179, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 14px;
+}
+
+.profile-form-group input:focus,
+.profile-form-group select:focus {
+    outline: none;
+    border-color: #ff7eb3;
+    box-shadow: 0 0 10px rgba(255, 126, 179, 0.3);
+}
+
+/* Enhanced Recovery */
+.recovery-step {
+    display: none;
+    padding: 20px;
+}
+
+.recovery-step.active {
+    display: block;
+}
+
+.recovery-input-group {
+    margin-bottom: 20px;
+}
+
+.recovery-input-group label {
+    display: block;
+    color: #ff7eb3;
+    margin-bottom: 8px;
+    font-size: 14px;
+}
+
+.recovery-input-group input {
+    width: 100%;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 126, 179, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 16px;
+}
+
+.recovery-security {
+    background: rgba(255, 126, 179, 0.1);
+    padding: 15px;
+    border-radius: 8px;
+    margin-top: 20px;
+    border: 1px solid rgba(255, 126, 179, 0.3);
+}
+
+.recovery-security h4 {
+    color: #ffd700;
+    margin-bottom: 10px;
+}
+
+.recovery-security p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* First Time Notification */
+.notification-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 99999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.notification-content {
+    background: linear-gradient(135deg, rgba(30, 30, 46, 0.95), rgba(20, 20, 30, 0.98));
+    width: 90%;
+    max-width: 600px;
+    border-radius: 20px;
+    padding: 30px;
+    border: 2px solid rgba(255, 126, 179, 0.3);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    animation: slideIn 0.5s ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateY(-50px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.notification-content h3 {
+    color: #ff7eb3;
+    margin-bottom: 20px;
+    font-size: 1.5rem;
+}
+
+.notification-content ol {
+    text-align: left;
+    margin: 20px 0;
+    padding-left: 20px;
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.notification-content li {
+    margin: 10px 0;
+    padding-left: 10px;
+}
+
+.notification-content strong {
+    color: #ffd700;
+}
+
+.notification-actions {
+    display: flex;
+    gap: 15px;
+    justify-content: center;
+    margin-top: 25px;
+}
+
+.notification-actions button {
+    min-width: 120px;
+}
+
+/* Instructions Modal */
+.instructions-content {
+    padding: 20px;
+    color: rgba(255, 255, 255, 0.9);
+    line-height: 1.6;
+}
+
+.instructions-section {
+    margin-bottom: 25px;
+    padding: 15px;
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 10px;
+    border-left: 4px solid #ff7eb3;
+}
+
+.instructions-section h4 {
+    color: #ffd700;
+    margin-bottom: 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.instructions-section ul {
+    padding-left: 20px;
+}
+
+.instructions-section li {
+    margin: 8px 0;
+    color: rgba(255, 255, 255, 0.8);
+}
+
+/* Stats Grid */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
@@ -967,6 +1259,7 @@ nav button.eye-catchy-btn:hover {
     margin: 0;
 }
 
+/* Charts */
 .charts-section {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 15px;
@@ -987,6 +1280,7 @@ nav button.eye-catchy-btn:hover {
     width: 100%;
 }
 
+/* User List Section */
 .user-list-section {
     background: rgba(0, 0, 0, 0.3);
     border-radius: 15px;
@@ -1021,121 +1315,45 @@ nav button.eye-catchy-btn:hover {
     border-radius: 4px;
 }
 
-.recent-user-item {
-    display: flex;
-    align-items: center;
-    padding: 15px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 10px;
-    margin-bottom: 10px;
-    transition: all 0.3s ease;
+/* Recovery Spinner */
+.recovery-spinner {
+    text-align: center;
+    padding: 30px;
 }
 
-.recent-user-item:hover {
-    background: rgba(255, 255, 255, 0.1);
-    transform: translateX(5px);
-}
-
-.user-avatar {
+.recovery-spinner .spinner {
     width: 50px;
     height: 50px;
-    background: linear-gradient(45deg, #667eea, #764ba2);
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 15px;
-    font-size: 24px;
-    color: white;
-}
-
-.user-info {
-    flex: 1;
-}
-
-.user-id {
-    color: white;
-    font-weight: bold;
-    margin-bottom: 5px;
-    font-family: monospace;
-}
-
-.user-time {
-    color: rgba(255, 255, 255, 0.6);
-    font-size: 0.85rem;
-}
-
-.admin-actions {
-    display: flex;
-    gap: 15px;
-    justify-content: center;
-    flex-wrap: wrap;
-}
-
-.admin-actions button {
-    min-width: 200px;
-}
-
-/* Loading Animation */
-.spinner {
-    width: 40px;
-    height: 40px;
     border: 4px solid rgba(255, 255, 255, 0.1);
     border-radius: 50%;
     border-top-color: #ff7eb3;
     animation: spin 1s linear infinite;
-    margin: 20px auto;
+    margin: 0 auto 20px;
 }
 
 @keyframes spin {
     to { transform: rotate(360deg); }
 }
 
-/* Forgot Password Styling */
-.forgot-link {
-    text-align: center;
-    margin-top: 15px;
-    color: #00ffc8;
-    cursor: pointer;
-    font-size: 14px;
-    text-decoration: underline;
-}
-
-.forgot-link:hover {
-    color: #ff7eb3;
-}
-
-.recovery-form {
-    background: rgba(0,0,0,0.3);
-    padding: 20px;
-    border-radius: 10px;
-    margin-top: 20px;
-    border: 1px solid rgba(255,126,179,0.3);
-}
-
-.recovery-option {
-    background: rgba(255,126,179,0.1);
+/* Success/Error Messages */
+.success-message {
+    background: rgba(46, 204, 113, 0.2);
+    color: #2ecc71;
     padding: 15px;
     border-radius: 8px;
-    margin-bottom: 15px;
-    cursor: pointer;
-    transition: all 0.3s;
+    margin: 15px 0;
+    border: 1px solid rgba(46, 204, 113, 0.5);
+    text-align: center;
 }
 
-.recovery-option:hover {
-    background: rgba(255,126,179,0.2);
-    transform: translateX(5px);
-}
-
-.back-link {
-    color: #ff7eb3;
-    cursor: pointer;
-    margin-top: 15px;
-    display: inline-block;
-}
-
-.back-link:hover {
-    text-decoration: underline;
+.error-message-new {
+    background: rgba(231, 76, 60, 0.2);
+    color: #e74c3c;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px 0;
+    border: 1px solid rgba(231, 76, 60, 0.5);
+    text-align: center;
 }
 
 /* User Details Modal */
@@ -1220,278 +1438,558 @@ nav button.eye-catchy-btn:hover {
     word-break: break-word;
 }
 
-/* Enhanced User List Table */
-.user-table-container {
-    overflow-x: auto;
-    margin-top: 20px;
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 10px;
+/* Responsive Design */
+@media (max-width: 768px) {
+    .login-box {
+        width: 95%;
+        padding: 25px;
+        margin-top: 70px;
+    }
+    
+    .form-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    nav {
+        flex-direction: column;
+    }
+    
+    nav button.eye-catchy-btn {
+        width: 100%;
+    }
+    
+    .course-container {
+        grid-template-columns: 1fr;
+    }
+    
+    .articles-grid {
+        grid-template-columns: 1fr;
+    }
+    
+    .theme-toggle-container {
+        position: static;
+        margin-bottom: 20px;
+    }
+    
+    #about-section {
+        width: 90vw;
+        right: 5vw;
+    }
+    
+    .developer-info {
+        flex-direction: column;
+    }
+    
+    .movie-input {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .user-stats {
+        flex-direction: column;
+        align-items: center;
+    }
+    
+    #user-counts-display {
+        margin-right: 0;
+        margin-bottom: 10px;
+        padding: 10px 15px;
+    }
+    
+    .stat-item {
+        display: block;
+        margin: 5px 0;
+    }
+    
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
+    }
+    
+    .notification-content {
+        padding: 20px;
+    }
+    
+    .notification-actions {
+        flex-direction: column;
+    }
+    
+    .notification-actions button {
+        width: 100%;
+    }
+    
+    .resource-link {
+        width: 100%;
+        justify-content: center;
+        margin: 5px 0;
+    }
+    
+    .user-info-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 480px) {
+    .welcome-message {
+        font-size: 1.5rem;
+    }
+    
+    .eye-catchy-btn {
+        padding: 10px 20px;
+        font-size: 14px;
+    }
+    
+    #content {
+        padding: 15px;
+    }
+    
+    .course-card, .article-card {
+        padding: 15px;
+    }
+    
+    .clock-container {
+        top: 5px;
+        left: 5px;
+        padding: 5px 8px;
+        max-width: 90px;
+    }
+    
+    .clock-date {
+        font-size: 8px;
+    }
+    
+    .clock-time {
+        font-size: 11px;
+    }
+    
+    .modal-content {
+        width: 98%;
+        padding: 10px;
+    }
+    
+    .modal-header {
+        padding: 15px;
+    }
+    
+    .modal-body {
+        padding: 15px;
+    }
+}
+
+/* Add this to your existing CSS file at the end */
+
+/* Modal Show Class - IMPORTANT! */
+.modal.show {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Profile Update Modal Fix */
+#profile-update-modal.show,
+#enhanced-recovery-modal.show,
+#instructions-modal.show {
+    display: flex !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Update Info Button Styling */
+.update-info-btn {
+    background: linear-gradient(45deg, #27ae60, #2ecc71) !important;
+    border: none !important;
+    color: white !important;
+    padding: 10px 15px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    margin: 5px !important;
+}
+
+.update-info-btn:hover {
+    background: linear-gradient(45deg, #2ecc71, #27ae60) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Instructions Button Styling */
+button[onclick="showInstructions()"] {
+    background: linear-gradient(45deg, #667eea, #764ba2) !important;
+    border: none !important;
+    color: white !important;
+    padding: 10px 15px !important;
+    border-radius: 8px !important;
+    cursor: pointer !important;
+    font-size: 14px !important;
+    margin: 5px !important;
+}
+
+button[onclick="showInstructions()"]:hover {
+    background: linear-gradient(45deg, #764ba2, #667eea) !important;
+    transform: translateY(-2px) !important;
+}
+
+/* Password Recovery Button in Forgot Form */
+.recovery-option {
+    background: rgba(255, 126, 179, 0.1);
     padding: 15px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 1px solid rgba(255, 126, 179, 0.3);
 }
 
-.user-table {
-    width: 100%;
-    border-collapse: collapse;
-    min-width: 800px;
-}
-
-.user-table th {
-    background: rgba(255, 255, 255, 0.1);
-    padding: 15px;
-    text-align: left;
-    color: #ffd700;
-    font-weight: 600;
-    border-bottom: 2px solid rgba(255, 126, 179, 0.3);
-}
-
-.user-table td {
-    padding: 12px 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.9);
-}
-
-.user-table tr:hover {
-    background: rgba(255, 255, 255, 0.05);
-}
-
-.user-table .user-action-btn {
-    padding: 6px 12px;
-    font-size: 12px;
+.recovery-option:hover {
     background: rgba(255, 126, 179, 0.2);
-    border: 1px solid rgba(255, 126, 179, 0.5);
+    transform: translateX(5px);
+    border-color: #ff7eb3;
 }
 
-.user-table .user-action-btn:hover {
-    background: rgba(255, 126, 179, 0.4);
+/* Ensure all modals are properly styled */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.8);
+    z-index: 10000;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
 }
 
-/* Statistics Bar */
-.stats-bar {
+.modal.show {
+    display: flex;
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Make sure buttons are visible */
+.eye-catchy-btn {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Fix for hidden class */
+.hidden {
+    display: none !important;
+}
+
+/* Show class for modals */
+.show {
+    display: flex !important;
+}
+
+/* Notification Popup Fix */
+.notification-popup {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    z-index: 99999;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+}
+
+.notification-popup.show {
+    display: flex;
+}
+
+/* Mobile fixes */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95%;
+        max-height: 85vh;
+        margin: 10px;
+    }
+    
+    .eye-catchy-btn.small-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+        margin: 3px;
+    }
+}
+
+/* Fix modal display issues */
+.modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+.modal.hidden {
+    opacity: 0;
+    visibility: hidden;
+}
+
+/* Make sure modals appear on top */
+.modal {
+    z-index: 10000;
+}
+
+.notification-popup {
+    z-index: 10001;
+}
+
+/* Ensure modal content is clickable */
+.modal-content {
+    pointer-events: auto;
+}
+
+/* Fix for first-time notification */
+#first-time-notification {
+    z-index: 10002;
+}
+
+/* Fix for about section */
+#about-section {
+    z-index: 1000;
+}
+
+
+/* Fix for modal display */
+.modal {
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    opacity: 0 !important;
+    visibility: hidden !important;
+    transition: opacity 0.3s ease, visibility 0.3s ease !important;
+}
+
+.modal.show {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Fix for instruction modal */
+#instructions-modal .modal-content {
+    max-width: 800px;
+    max-height: 80vh;
+    overflow: hidden;
+}
+
+#instructions-modal .modal-body {
+    max-height: calc(80vh - 100px);
+    overflow-y: auto;
+}
+
+/* Fix for profile update modal */
+#profile-update-modal .modal-content {
+    max-width: 600px;
+}
+
+/* Fix for buttons */
+button.eye-catchy-btn {
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Level 1 and Level 2 specific styling */
+.level-option {
+    background: rgba(255, 255, 255, 0.1);
+    padding: 20px;
+    border-radius: 10px;
+    margin: 10px 0;
+    cursor: pointer;
+    transition: all 0.3s;
+    border: 2px solid transparent;
+}
+
+.level-option:hover {
+    background: rgba(255, 126, 179, 0.2);
+    border-color: #ff7eb3;
+    transform: translateY(-3px);
+}
+
+.level-option h3 {
+    color: #ffd700;
+    margin-bottom: 10px;
+}
+
+.level-option p {
+    color: rgba(255, 255, 255, 0.8);
+    font-size: 14px;
+}
+
+/* Mobile-specific fixes */
+@media (max-width: 768px) {
+    .modal-content {
+        width: 95% !important;
+        margin: 10px !important;
+    }
+    
+    #instructions-modal .modal-body {
+        padding: 15px !important;
+    }
+    
+    .instructions-section {
+        padding: 10px !important;
+        margin-bottom: 15px !important;
+    }
+}
+
+/* Fix for modal show/hide */
+.modal {
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s ease, visibility 0.3s ease;
+}
+
+.modal.show {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Charts and graphs styling */
+.chart-container {
+    background: rgba(0, 0, 0, 0.3);
+    padding: 20px;
+    border-radius: 10px;
+    margin-top: 20px;
+}
+
+.stat-chart {
+    width: 100%;
+    height: 300px;
+    margin: 20px 0;
+}
+
+/* User info update form fixes */
+.profile-form-group {
+    margin-bottom: 15px;
+}
+
+.profile-form-group label {
+    display: block;
+    color: #ff7eb3;
+    margin-bottom: 5px;
+    font-weight: bold;
+}
+
+.profile-form-group input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 8px;
+    border: 1px solid rgba(255, 126, 179, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    color: white;
+    font-size: 14px;
+}
+
+.profile-form-group input:focus {
+    outline: none;
+    border-color: #ff7eb3;
+    box-shadow: 0 0 10px rgba(255, 126, 179, 0.3);
+}
+
+/* Statistics display improvements */
+.stats-grid {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin: 20px 0;
-    padding: 20px;
-    background: rgba(255, 255, 255, 0.05);
-    border-radius: 15px;
-    border: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-/* Charts */
-.charts-container {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
     gap: 20px;
     margin: 20px 0;
 }
 
-.chart-wrapper {
-    background: rgba(0, 0, 0, 0.3);
-    padding: 20px;
-    border-radius: 10px;
-}
-
-.chart-wrapper h4 {
-    margin-bottom: 15px;
-    color: #ff7eb3;
-    text-align: center;
-}
-
-/* Enhanced User List */
-.user-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.user-card {
+.stat-card {
     background: rgba(255, 255, 255, 0.05);
-    padding: 15px;
     border-radius: 10px;
+    padding: 20px;
+    text-align: center;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    transition: all 0.3s ease;
 }
 
-.user-card:hover {
-    background: rgba(255, 126, 179, 0.1);
-    transform: translateY(-3px);
-}
-
-.user-card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 10px;
-}
-
-.user-id {
-    font-family: monospace;
-    background: rgba(0, 198, 255, 0.2);
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-size: 0.9rem;
-}
-
-.user-status {
-    display: inline-block;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    margin-right: 5px;
-}
-
-.status-active {
-    background: #27ae60;
-    animation: pulse 2s infinite;
-}
-
-.status-inactive {
-    background: #7f8c8d;
-}
-
-.user-actions {
-    display: flex;
-    gap: 8px;
-    margin-top: 10px;
-}
-
-/* User Details Enhanced */
-.user-details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.user-detail-item {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 15px;
-    border-radius: 8px;
-}
-
-.detail-label {
-    font-size: 0.8rem;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 5px;
-}
-
-.detail-value {
-    font-size: 1.1rem;
-    color: #fff;
-    word-break: break-word;
-}
-
-/* Animation for active users */
-@keyframes pulse {
-    0% { opacity: 1; }
-    50% { opacity: 0.5; }
-    100% { opacity: 1; }
-}
-
-/* Filter Controls */
-.filter-controls {
-    display: flex;
-    gap: 10px;
-    margin-bottom: 20px;
-    flex-wrap: wrap;
-}
-
-.filter-btn {
-    padding: 8px 15px;
-    background: rgba(255, 255, 255, 0.1);
-    border: none;
-    border-radius: 5px;
-    color: white;
-    cursor: pointer;
-    transition: all 0.3s ease;
-}
-
-.filter-btn:hover {
-    background: rgba(255, 126, 179, 0.3);
-}
-
-.filter-btn.active {
-    background: linear-gradient(45deg, #ff7eb3, #ffd700);
-    color: #000;
-}
-
-/* Search Bar */
-.search-container {
-    margin-bottom: 20px;
-}
-
-.search-input {
-    width: 100%;
-    padding: 12px 20px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.2);
-    border-radius: 25px;
-    color: white;
-    font-size: 1rem;
-}
-
-.search-input:focus {
-    outline: none;
-    border-color: #ff7eb3;
-}
-
-/* Department Badges */
-.dept-badge {
-    display: inline-block;
-    padding: 4px 10px;
-    border-radius: 12px;
-    font-size: 0.8rem;
-    margin: 2px;
-}
-
-.dept-csm { background: rgba(52, 152, 219, 0.3); color: #3498db; }
-.dept-fpm { background: rgba(46, 204, 113, 0.3); color: #2ecc71; }
-.dept-fsee { background: rgba(155, 89, 182, 0.3); color: #9b59b6; }
-.dept-iwm { background: rgba(241, 196, 15, 0.3); color: #f1c40f; }
-.dept-others { background: rgba(149, 165, 166, 0.3); color: #95a5a6; }
-
-/* Enhanced Stats Section */
-.enhanced-stats-section {
-    padding: 20px;
-}
-
-.dept-details-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-    gap: 15px;
-    margin-top: 20px;
-}
-
-.dept-card {
-    background: rgba(255, 255, 255, 0.05);
-    padding: 20px;
-    border-radius: 10px;
-    text-align: center;
-}
-
-.dept-count {
-    font-size: 2rem;
+.stat-value {
+    font-size: 2.5rem;
     font-weight: bold;
     color: #00ffc8;
     margin: 10px 0;
 }
 
-.dept-percentage {
-    height: 6px;
-    background: rgba(255, 255, 255, 0.1);
-    border-radius: 3px;
-    margin: 10px 0;
-    overflow: hidden;
+.stat-label {
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 0.9rem;
 }
 
-.dept-percentage-fill {
-    height: 100%;
-    background: linear-gradient(45deg, #ff7eb3, #00ffc8);
-    border-radius: 3px;
+/* Instruction button fix */
+.eye-catchy-btn {
+    cursor: pointer;
 }
 
-/* User Management Section */
-.user-management-section {
-    padding: 20px;
+/* Navigation button text adjustments */
+nav button.eye-catchy-btn i {
+    font-size: 14px;
+    margin-right: 5px;
 }
+
+nav button.eye-catchy-btn span {
+    font-size: 13px;
+}
+
+/* Adjust button text for smaller screens */
+@media (max-width: 1024px) {
+    nav button.eye-catchy-btn {
+        padding: 8px 12px;
+        font-size: 12px;
+    }
+    
+    nav button.eye-catchy-btn i {
+        font-size: 12px;
+        margin-right: 4px;
+    }
+}
+
+@media (max-width: 768px) {
+    nav button.eye-catchy-btn {
+        padding: 6px 10px;
+        font-size: 11px;
+        line-height: 1.2;
+    }
+    
+    nav {
+        gap: 8px;
+        padding: 10px;
+    }
+}
+
+/* Very small screens - shorten text */
+@media (max-width: 480px) {
+    nav button.eye-catchy-btn {
+        font-size: 10px;
+        padding: 5px 8px;
+    }
+    
+    /* Optional: Hide icon on very small screens */
+    nav button.eye-catchy-btn i {
+        font-size: 10px;
+    }
+    
+    /* Optional: Use shorter text for some buttons */
+    nav button.eye-catchy-btn[onclick*="courses"]::after {
+        content: "Courses";
+    }
+    nav button.eye-catchy-btn[onclick*="articles"]::after {
+        content: "Articles";
+    }
+    nav button.eye-catchy-btn[onclick*="publications"]::after {
+        content: "Research";
+    }
+    nav button.eye-catchy-btn[onclick*="diary"]::after {
+        content: "Diary";
+    }
+    nav button.eye-catchy-btn[onclick*="music"]::after {
+        content: "Music";
+    }
+    nav button.eye-catchy-btn[onclick*="movies"]::after {
+        content: "Movies";
+    }
+}
+

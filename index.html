@@ -14,6 +14,12 @@
 </head>
 
 <body>
+    <!-- Clock - Fixed for Mobile -->
+    <div id="clock" class="clock-container">
+        <div class="clock-date"></div>
+        <div class="clock-time"></div>
+    </div>
+
     <!-- Auth Container -->
     <div id="auth-container" class="login-box">
         <!-- Login Form -->
@@ -56,6 +62,8 @@
                 <div class="form-group full-width">
                     <select id="reg-department" required>
                         <option value="">Select Department *</option>
+                        <option value="Level 1">Level 1 (First Year)</option>
+                        <option value="Level 2">Level 2 (Second Year)</option>
                         <option value="CSM">CSM (Computer Science and Mathematics)</option>
                         <option value="FPM">FPM (Farm Power and Machinery)</option>
                         <option value="FSEE">FSEE (Farm Structure and Environmental Engineering)</option>
@@ -107,7 +115,7 @@
                     </p>
                 </div>
                 
-                <div class="recovery-option" onclick="resetPassword()">
+                <div class="recovery-option" onclick="showEnhancedRecovery()">
                     <h4><i class="fas fa-redo"></i> Reset Password</h4>
                     <p style="color: rgba(255,255,255,0.7); font-size: 14px;">
                         Reset your password using your registered ID and email
@@ -149,6 +157,9 @@
             <button onclick="showContent('articles')" class="eye-catchy-btn nav-btn">
                 <i class="fas fa-newspaper"></i> Read Articles
             </button>
+            <button onclick="showContent('publications')" class="eye-catchy-btn nav-btn">
+                <i class="fas fa-file-alt"></i> Research Publications
+            </button>
             <button onclick="showContent('diary')" class="eye-catchy-btn nav-btn">
                 <i class="fas fa-book"></i> Study Diary
             </button>
@@ -159,7 +170,6 @@
                 <i class="fas fa-film"></i> Watch Movies
             </button>
         </nav>
-
         <!-- User Stats -->
         <div class="user-stats">
             <div id="user-counts-display">
@@ -180,6 +190,9 @@
             </div>
             <button onclick="showInstructions()" class="eye-catchy-btn small-btn">
                 <i class="fas fa-info-circle"></i> Instructions
+            </button>
+            <button onclick="showProfileUpdate()" class="eye-catchy-btn small-btn update-info-btn">
+                <i class="fas fa-user-edit"></i> Update Info
             </button>
             <button onclick="showUserList()" class="admin-only eye-catchy-btn small-btn">
                 <i class="fas fa-users"></i> View All Users
@@ -208,7 +221,6 @@
 
     <!-- Visual Effects -->
     <div id="nebulaLight"></div>
-    <div id="clock"></div>
 
     <!-- Popup -->
     <div id="popup" class="popup hidden">
@@ -217,7 +229,7 @@
     </div>
 
     <!-- User Details Modal -->
-    <div id="user-details-modal" class="user-details-modal hidden">
+    <div id="user-details-modal" class="modal hidden">
         <div class="user-details-content">
             <div class="user-details-header">
                 <h3><i class="fas fa-user-circle"></i> User Details</h3>
@@ -291,6 +303,78 @@
         </div>
     </div>
 
+    <!-- Profile Update Modal -->
+    <div id="profile-update-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-user-edit"></i> Update Profile</h3>
+                <button onclick="closeProfileUpdate()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="profile-update-form">
+                    <!-- Will be populated dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Password Recovery Enhanced Modal -->
+    <div id="enhanced-recovery-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-unlock-alt"></i> Password Recovery</h3>
+                <button onclick="closeEnhancedRecovery()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div id="recovery-form-container">
+                    <!-- Recovery form loaded dynamically -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- First Time Visitor Notification -->
+    <div id="first-time-notification" class="notification-popup hidden">
+        <div class="notification-content">
+            <h3><i class="fas fa-info-circle"></i> Welcome to EduHub!</h3>
+            <p>Here's how to use this platform:</p>
+            <ol>
+                <li>Use <strong>Course Selection</strong> to access study materials</li>
+                <li>Check <strong>Read Articles</strong> for educational content</li>
+                <li>Use <strong>Study Diary</strong> to save your notes</li>
+                <li>Explore <strong>Music Player</strong> and <strong>Movies</strong> for entertainment</li>
+                <li>Click on <strong>Instructions</strong> for detailed guidance</li>
+                <li>Use <strong>Update Info</strong> to change your profile details</li>
+            </ol>
+            <p style="color: #ff7eb3; margin-top: 15px;">
+                <i class="fas fa-star"></i> Your user data is being tracked securely. No data will be reset.
+            </p>
+            <div class="notification-actions">
+                <button onclick="dismissNotification()" class="eye-catchy-btn">
+                    <i class="fas fa-check"></i> Got it!
+                </button>
+                <button onclick="showInstructions()" class="eye-catchy-btn" style="background: linear-gradient(45deg, #667eea, #764ba2);">
+                    <i class="fas fa-book"></i> View Instructions
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Instruction Fix Section -->
+    <div id="instructions-modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-book-open"></i> How to Use This Website</h3>
+                <button onclick="closeInstructions()" class="close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="instructions-content">
+                    <!-- Instructions will be loaded here -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <!-- About Developer -->
     <div id="about-container">
         <button id="toggle-about" class="eye-catchy-btn">
@@ -342,7 +426,7 @@
         </div>
     </div>
 
-    <!-- JavaScript File -->
+    <!-- JavaScript Files -->
     <script src="script.js"></script>
 </body>
 </html>
