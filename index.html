@@ -2,12 +2,11 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, viewport-fit=cover">
     <meta name="description" content="EduHub AET - Bangladesh Agricultural University Educational Platform">
     <title>EduHub AET - BAU Mymensingh</title>
     <link rel="stylesheet" href="styles.css">
-    <link rel="stylesheet" href="extra.css">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.3/dist/confetti.browser.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <!-- Firebase SDKs -->
@@ -16,7 +15,6 @@
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 </head>
-
 <body>
     <!-- Clock -->
     <div id="clock" class="clock-container">
@@ -152,7 +150,7 @@
                 </button>
             </div>
             <div class="top-actions">
-                <button onclick="showInstructions()" class="eye-catchy-btn small-btn icon-btn" title="Instructions">
+                <button onclick="showContent('help')" class="eye-catchy-btn small-btn icon-btn" title="Instructions">
                     <i class="fas fa-info-circle"></i> <span class="btn-label">Help</span>
                 </button>
                 <button onclick="showProfileUpdate()" class="eye-catchy-btn small-btn update-info-btn icon-btn" title="Update Profile">
@@ -197,7 +195,7 @@
 
         <!-- Main Navigation -->
         <nav class="main-nav">
-            <button onclick="showContent('courses')" class="eye-catchy-btn nav-btn" id="course-section-btn">
+            <button onclick="showContent('courses')" class="eye-catchy-btn nav-btn">
                 <i class="fas fa-graduation-cap"></i> <span>Courses</span>
             </button>
             <button onclick="showContent('community')" class="eye-catchy-btn nav-btn">
@@ -209,11 +207,15 @@
             <button onclick="showContent('abroad')" class="eye-catchy-btn nav-btn">
                 <i class="fas fa-plane"></i> <span>Study Abroad</span>
             </button>
+
             <button onclick="showContent('articles')" class="eye-catchy-btn nav-btn">
                 <i class="fas fa-newspaper"></i> <span>Articles</span>
             </button>
-            <button onclick="showContent('publications')" class="eye-catchy-btn nav-btn">
-                <i class="fas fa-file-alt"></i> <span>Research</span>
+            <button onclick="showContent('research')" class="eye-catchy-btn nav-btn">
+                <i class="fas fa-flask"></i> <span>Research</span>
+            </button>
+            <button onclick="showContent('teacher-news')" class="eye-catchy-btn nav-btn">
+                <i class="fas fa-chalkboard-teacher"></i> <span>Teachers</span>
             </button>
             <button onclick="showContent('diary')" class="eye-catchy-btn nav-btn">
                 <i class="fas fa-book"></i> <span>Diary</span>
@@ -223,6 +225,9 @@
             </button>
             <button onclick="showContent('movies')" class="eye-catchy-btn nav-btn">
                 <i class="fas fa-film"></i> <span>Movies</span>
+            </button>
+            <button onclick="showContent('game')" class="eye-catchy-btn nav-btn">
+                <i class="fas fa-gamepad"></i> <span>Game</span>
             </button>
         </nav>
 
@@ -235,29 +240,8 @@
                     <p style="color:rgba(255,255,255,0.6);font-size:0.9rem;margin-top:10px;">
                         Bangladesh Agricultural University, Mymensingh
                     </p>
-                    <div class="welcome-quick-links">
-                        <button onclick="showContent('courses')" class="quick-link-btn">
-                            <i class="fas fa-graduation-cap"></i> View Courses
-                        </button>
-                        <button onclick="showContent('community')" class="quick-link-btn">
-                            <i class="fas fa-comments"></i> Community Q&amp;A
-                        </button>
-                        <button onclick="showContent('gallery')" class="quick-link-btn">
-                            <i class="fas fa-images"></i> Photo Gallery
-                        </button>
-                        <button onclick="showContent('abroad')" class="quick-link-btn">
-                            <i class="fas fa-plane"></i> Study Abroad
-                        </button>
-                    </div>
                 </div>
             </div>
-        </div>
-
-        <!-- Logout Button (mobile bottom) -->
-        <div class="mobile-logout">
-            <button onclick="logout()" id="logout-btn-mobile" class="eye-catchy-btn full-width">
-                <i class="fas fa-sign-out-alt"></i> Logout
-            </button>
         </div>
     </div>
 
@@ -279,61 +263,6 @@
             </div>
             <div class="user-details-body">
                 <div id="user-details-content"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Admin Panel Modal -->
-    <div id="admin-panel-modal" class="modal hidden">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3><i class="fas fa-chart-line"></i> Admin Dashboard</h3>
-                <button onclick="closeAdminPanel()" class="close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="stats-grid">
-                    <div class="stat-card">
-                        <h4><i class="fas fa-users"></i> Total Users</h4>
-                        <div class="stat-value" id="admin-total-count">0</div>
-                        <p>All registered users</p>
-                    </div>
-                    <div class="stat-card">
-                        <h4><i class="fas fa-eye"></i> Active Now</h4>
-                        <div class="stat-value" id="admin-active-count">0</div>
-                        <p>Currently active users</p>
-                    </div>
-                    <div class="stat-card">
-                        <h4><i class="fas fa-calendar-day"></i> Today</h4>
-                        <div class="stat-value" id="admin-today-count">0</div>
-                        <p>New users today</p>
-                    </div>
-                    <div class="stat-card">
-                        <h4><i class="fas fa-graduation-cap"></i> Departments</h4>
-                        <div class="stat-value" id="admin-dept-count">0</div>
-                        <p>Different departments</p>
-                    </div>
-                </div>
-                <div class="charts-section">
-                    <h4><i class="fas fa-chart-bar"></i> Department Distribution</h4>
-                    <div class="chart-container">
-                        <canvas id="dept-distribution-chart"></canvas>
-                    </div>
-                </div>
-                <div class="user-list-section">
-                    <h4><i class="fas fa-users"></i> Recent Registrations</h4>
-                    <div id="recent-users-list" class="user-list"></div>
-                </div>
-                <div class="admin-actions">
-                    <button onclick="exportUserData()" class="eye-catchy-btn">
-                        <i class="fas fa-download"></i> Export All Data
-                    </button>
-                    <button onclick="syncAllData()" class="eye-catchy-btn">
-                        <i class="fas fa-sync-alt"></i> SYNC ALL DATA
-                    </button>
-                    <button onclick="resetTodayCount()" class="eye-catchy-btn" style="background:linear-gradient(45deg,#ff416c,#ff4b2b);">
-                        <i class="fas fa-redo"></i> RESET TODAY'S COUNT
-                    </button>
-                </div>
             </div>
         </div>
     </div>
@@ -372,45 +301,7 @@
                 <button onclick="closeInstructions()" class="close-btn">&times;</button>
             </div>
             <div class="modal-body">
-                <div class="instructions-content">
-                    <div class="instruction-section">
-                        <h4><i class="fas fa-graduation-cap" style="color:#ff7eb3;"></i> 1. Courses</h4>
-                        <p>Browse study materials organized by Level (1-4) and Semester. Each semester card shows credits, hours, and departmental options. Click <strong>"Access Materials"</strong> to open the Google Drive folder for that semester.</p>
-                    </div>
-                    <div class="instruction-section">
-                        <h4><i class="fas fa-calendar-alt" style="color:#ff7eb3;"></i> 2. Class Routine</h4>
-                        <p>View the official class schedule for Level-4 Semester-2 (July-December 2024). Filter by your department (FPM, FSEE, IWM).</p>
-                    </div>
-                    <div class="instruction-section">
-                        <h4><i class="fas fa-comments" style="color:#ff7eb3;"></i> 3. Community Q&amp;A</h4>
-                        <p>Ask academic questions, share knowledge, and discuss topics with your classmates — like a mini-LinkedIn for AET students. You can <strong>post, comment, and react</strong> to discussions.</p>
-                    </div>
-                    <div class="instruction-section">
-                        <h4><i class="fas fa-images" style="color:#ff7eb3;"></i> 4. Photo Gallery</h4>
-                        <p>Browse and share photos from university events, field trips, lab sessions, and campus life. Upload your own photos and react with emoji or comment on others' photos.</p>
-                        <p style="color:#ffd700;font-size:0.85rem;"><i class="fas fa-info-circle"></i> Photo uploads require approval from admin unless you're an admin.</p>
-                    </div>
-                    <div class="instruction-section">
-                        <h4><i class="fas fa-plane" style="color:#ff7eb3;"></i> 5. Study Abroad</h4>
-                        <p>Explore higher study opportunities at universities in Germany, USA, Japan, Australia, and more. Filter by country and find scholarships specifically for Agricultural Engineering students.</p>
-                    </div>
-                    <div class="instruction-section">
-                        <h4><i class="fas fa-book" style="color:#ff7eb3;"></i> 6. Study Diary</h4>
-                        <p>Your personal private notes space. Write, save, and download your study notes. Data is saved locally on your device.</p>
-                    </div>
-                    <div class="instruction-section">
-                        <h4><i class="fas fa-user-edit" style="color:#ff7eb3;"></i> 7. Update Profile</h4>
-                        <p>Update your nickname, department, email, phone, hometown, hall name, and supervisor. You can also change your password here.</p>
-                    </div>
-                    <div class="instruction-section">
-                        <h4><i class="fas fa-moon" style="color:#ff7eb3;"></i> 8. Night / Day Mode</h4>
-                        <p>Toggle between dark (night) and light (day) themes using the button at the top.</p>
-                    </div>
-                    <div class="instruction-section" style="background:rgba(255,126,179,0.1);border-radius:10px;padding:15px;margin-top:10px;">
-                        <h4><i class="fas fa-shield-alt" style="color:#ffd700;"></i> Your Data is Safe</h4>
-                        <p>All user data is stored securely in Firebase. Existing registrations will never be deleted. Contact admin at <a href="mailto:deboneel1998@gmail.com" style="color:#ff7eb3;">deboneel1998@gmail.com</a> for any issues.</p>
-                    </div>
-                </div>
+                <div class="instructions-content"></div>
             </div>
         </div>
     </div>
@@ -422,17 +313,17 @@
             <p>Here's a quick overview of what you can do:</p>
             <ul>
                 <li><strong>📚 Courses</strong> — Access study materials by semester</li>
-                <li><strong>🗓️ Routine</strong> — View your class schedule</li>
                 <li><strong>💬 Community</strong> — Ask questions, discuss topics</li>
                 <li><strong>🖼️ Gallery</strong> — Share and view campus photos</li>
                 <li><strong>✈️ Study Abroad</strong> — Explore universities worldwide</li>
                 <li><strong>📝 Diary</strong> — Write your personal study notes</li>
+                <li><strong>🎮 Game</strong> — Memory match (Agri theme)</li>
             </ul>
             <div class="notification-actions">
                 <button onclick="dismissNotification()" class="eye-catchy-btn">
                     <i class="fas fa-check"></i> Got it!
                 </button>
-                <button onclick="showInstructions()" class="eye-catchy-btn" style="background:linear-gradient(45deg,#667eea,#764ba2);">
+                <button onclick="showContent('help')" class="eye-catchy-btn" style="background:linear-gradient(45deg,#667eea,#764ba2);">
                     <i class="fas fa-book"></i> Full Guide
                 </button>
             </div>
@@ -491,12 +382,11 @@
         </div>
     </div>
 
-    <!-- Hidden file input for gallery uploads -->
+    <!-- Hidden file inputs -->
     <input type="file" id="gallery-file-input" accept="image/*" style="display:none;" onchange="handleGalleryUpload(event)">
     <input type="file" id="doc-file-input" accept=".pdf,.doc,.docx,.ppt,.pptx,.xls,.xlsx,.txt" style="display:none;" onchange="handleDocUpload(event)">
 
-    <!-- Scripts -->
+    <!-- Consolidated Script -->
     <script src="script.js"></script>
-    <script src="features.js"></script>
 </body>
 </html>
